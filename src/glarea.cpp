@@ -427,6 +427,64 @@ void GLArea::paintCylinder(float ep_cyl, float r_cyl, int nb_fac, float col_r, f
     glDisableVertexAttribArray(m_colAttr);
 }
 
+void GLArea::paintLink(float x, float y, float ep_link, float r_link, float edge, float rotate, float col_r, float col_g, float col_b){
+
+    float l_link = r_link - edge/2;
+
+
+    // On initialise le tableau des sommets
+    // On aura forcément 16 sommets pour le maillon
+    GLfloat vertices[16];
+
+    // On intialise le tableau des couleurs
+    // On aura 10 faces
+    GLfloat colors[10];
+
+
+    // On définit les sommets et couleurs
+    // sans rotation et centre 0 d'abord :
+
+    //Première face :
+
+    // Point A
+    vertices[3*0]     = -r_link/2;   //x
+    vertices[3*0 + 1] = l_link/2;   //y
+    vertices[3*0 + 2] = ep_link/2;  //z
+
+    // B
+    vertices[3*1]     = -l_link/2;   //x
+    vertices[3*1 + 1] = r_link/2;   //y
+    vertices[3*1 + 2] = ep_link/2;  //z
+
+    // C
+    vertices[3*2]     = l_link/2;   //x
+    vertices[3*2 + 1] = r_link/2;   //y
+    vertices[3*2 + 2] = ep_link/2;  //z
+
+    // D
+    vertices[3*2]     = r_link/2;   //x
+    vertices[3*2 + 1] = r_link/2;   //y
+    vertices[3*2 + 2] = ep_link/2;  //z
+
+
+    //
+
+    glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, vertices);
+    glVertexAttribPointer(m_colAttr, 3, GL_FLOAT, GL_FALSE, 0, colors);
+
+    glEnableVertexAttribArray(m_posAttr);  // rend le VAA accessible pour glDrawArrays
+    glEnableVertexAttribArray(m_colAttr);
+
+
+    // TODO
+
+    //
+
+
+    glDisableVertexAttribArray(m_posAttr);
+    glDisableVertexAttribArray(m_colAttr);
+}
+
 
 
 
