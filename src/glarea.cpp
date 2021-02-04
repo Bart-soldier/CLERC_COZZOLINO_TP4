@@ -104,10 +104,29 @@ void GLArea::paintGL()
     //matrix.perspective(60.0f, m_ratio, 0.1f, 100.0f);  // = gluPerspective
 
     // Remplace gluLookAt (0, 0, 3.0, 0, 0, 0, 0, 1, 0);
-    matrix.translate(3, 0, m_cameraDistance);
+    matrix.translate(1, 0, m_cameraDistance);
     matrix.rotate(m_cameraAngle, 0, 1, 0);
 
     //paintTP3(matrix);
+
+
+
+
+
+    //QMatrix4x4 matrixCopy_1 = matrix; // Push
+
+    //matrixCopy_1.rotate(-10, 0, 0, 1);
+    //m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // On applique la matrice
+
+    this->paintLink(1, 1, 0.8, 1, 1, 1);
+    //matrixCopy_1.translate(0, 0, -1/2);
+
+    m_program->setUniformValue(m_matrixUniform, matrix); // Pop
+
+
+
+
+
 
     m_program->release();
 }
@@ -427,18 +446,22 @@ void GLArea::paintCylinder(float ep_cyl, float r_cyl, int nb_fac, float col_r, f
     glDisableVertexAttribArray(m_colAttr);
 }
 
-void GLArea::paintLink(float x, float y, float ep_link, float r_link, float edge, float rotate, float col_r, float col_g, float col_b){
+//float x, float y, float ep_link, float r_link, float edge, float rotate, float col_r, float col_g, float col_b
+
+void GLArea::paintLink(float ep_link, float r_link, float edge, float col_r, float col_g, float col_b){
 
     float l_link = r_link - edge/2;
 
 
+    qDebug() << "  PAINTLINK  ";
+
     // On initialise le tableau des sommets
     // On aura forcément 16 sommets pour le maillon
-    GLfloat vertices[16];
+    GLfloat vertices[16*3];
 
     // On intialise le tableau des couleurs
     // On aura 10 faces
-    GLfloat colors[10];
+    GLfloat colors[10*3];
 
 
     // On définit les sommets et couleurs
@@ -451,20 +474,83 @@ void GLArea::paintLink(float x, float y, float ep_link, float r_link, float edge
     vertices[3*0 + 1] = l_link/2;   //y
     vertices[3*0 + 2] = ep_link/2;  //z
 
+    colors[3 * 0] = 0.8 * col_r;
+    colors[3 * 0 + 1] = 0.8 * col_g;
+    colors[3 * 0 + 2] = 0.8 * col_b;
+
     // B
     vertices[3*1]     = -l_link/2;   //x
     vertices[3*1 + 1] = r_link/2;   //y
     vertices[3*1 + 2] = ep_link/2;  //z
+
+    colors[3 * 1] = 0.8 * col_r;
+    colors[3 * 1 + 1] = 0.8 * col_g;
+    colors[3 * 1 + 2] = 0.8 * col_b;
 
     // C
     vertices[3*2]     = l_link/2;   //x
     vertices[3*2 + 1] = r_link/2;   //y
     vertices[3*2 + 2] = ep_link/2;  //z
 
+    colors[3 * 2] = 0.8 * col_r;
+    colors[3 * 2 + 1] = 0.8 * col_g;
+    colors[3 * 2 + 2] = 0.8 * col_b;
+
     // D
-    vertices[3*2]     = r_link/2;   //x
-    vertices[3*2 + 1] = r_link/2;   //y
-    vertices[3*2 + 2] = ep_link/2;  //z
+    vertices[3*3]     = r_link/2;   //x
+    vertices[3*3 + 1] = l_link/2;   //y
+    vertices[3*3 + 2] = ep_link/2;  //z
+
+    colors[3 * 3] = 0.8 * col_r;
+    colors[3 * 3 + 1] = 0.8 * col_g;
+    colors[3 * 3 + 2] = 0.8 * col_b;
+
+
+    // E
+    vertices[3*4]     = r_link/2;    //x
+    vertices[3*4 + 1] = -l_link/2;   //y
+    vertices[3*4 + 2] = ep_link/2;   //z
+
+    colors[3 * 4] = 0.8 * col_r;
+    colors[3 * 4 + 1] = 0.8 * col_g;
+    colors[3 * 4 + 2] = 0.8 * col_b;
+
+    // F
+    vertices[3*5]     = l_link/2;    //x
+    vertices[3*5 + 1] = -r_link/2;   //y
+    vertices[3*5 + 2] = ep_link/2;   //z
+
+    colors[3 * 5] = 0.8 * col_r;
+    colors[3 * 5 + 1] = 0.8 * col_g;
+    colors[3 * 5 + 2] = 0.8 * col_b;
+
+    // G
+    vertices[3*6]     = -l_link/2;    //x
+    vertices[3*6 + 1] = -r_link/2;   //y
+    vertices[3*6 + 2] = ep_link/2;   //z
+
+    colors[3 * 6] = 0.8 * col_r;
+    colors[3 * 6 + 1] = 0.8 * col_g;
+    colors[3 * 6 + 2] = 0.8 * col_b;
+
+
+    // H
+    vertices[3*7]     = -r_link/2;    //x
+    vertices[3*7 + 1] = -l_link/2;   //y
+    vertices[3*7 + 2] = ep_link/2;   //z
+
+    colors[3 * 8] =  col_r;
+    colors[3 * 8 + 1] =  col_g;
+    colors[3 * 8 + 2] =  col_b;
+
+
+
+/*
+    for (int i=0; i<8; i++){ //On s'occupe des 8 premiers sommets de la première face
+
+
+
+    }*/
 
 
     //
@@ -476,10 +562,8 @@ void GLArea::paintLink(float x, float y, float ep_link, float r_link, float edge
     glEnableVertexAttribArray(m_colAttr);
 
 
-    // TODO
 
-    //
-
+    glDrawArrays(GL_POLYGON, 0, 8); // Première face
 
 
 
