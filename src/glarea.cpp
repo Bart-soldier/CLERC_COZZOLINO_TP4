@@ -10,6 +10,7 @@
 #include <QSurfaceFormat>
 #include <QMatrix4x4>
 #include <math.h>
+#include "link.h"
 
 static const QString vertexShaderFile   = ":/basic.vsh";
 static const QString fragmentShaderFile = ":/basic.fsh";
@@ -118,7 +119,7 @@ void GLArea::paintGL()
     //matrixCopy_1.rotate(-10, 0, 0, 1);
     //m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // On applique la matrice
 
-    this->paintLink(1, 1, 0.8, 1, 1, 1);
+    this->paintLink(1, 1, 0.2, 0.8, 0.8, 0.8);
     //matrixCopy_1.translate(0, 0, -1/2);
 
     m_program->setUniformValue(m_matrixUniform, matrix); // Pop
@@ -450,113 +451,12 @@ void GLArea::paintCylinder(float ep_cyl, float r_cyl, int nb_fac, float col_r, f
 
 void GLArea::paintLink(float ep_link, float r_link, float edge, float col_r, float col_g, float col_b){
 
-    float l_link = r_link - edge/2;
-
+    Link *link = new Link(ep_link, r_link, edge, col_r, col_g, col_b);
 
     qDebug() << "  PAINTLINK  ";
 
-    // On initialise le tableau des sommets
-    // On aura forcément 16 sommets pour le maillon
-    GLfloat vertices[16*3];
-
-    // On intialise le tableau des couleurs
-    // On aura 10 faces
-    GLfloat colors[10*3];
-
-
-    // On définit les sommets et couleurs
-    // sans rotation et centre 0 d'abord :
-
-    //Première face :
-
-    // Point A
-    vertices[3*0]     = -r_link/2;   //x
-    vertices[3*0 + 1] = l_link/2;   //y
-    vertices[3*0 + 2] = ep_link/2;  //z
-
-    colors[3 * 0] = 0.8 * col_r;
-    colors[3 * 0 + 1] = 0.8 * col_g;
-    colors[3 * 0 + 2] = 0.8 * col_b;
-
-    // B
-    vertices[3*1]     = -l_link/2;   //x
-    vertices[3*1 + 1] = r_link/2;   //y
-    vertices[3*1 + 2] = ep_link/2;  //z
-
-    colors[3 * 1] = 0.8 * col_r;
-    colors[3 * 1 + 1] = 0.8 * col_g;
-    colors[3 * 1 + 2] = 0.8 * col_b;
-
-    // C
-    vertices[3*2]     = l_link/2;   //x
-    vertices[3*2 + 1] = r_link/2;   //y
-    vertices[3*2 + 2] = ep_link/2;  //z
-
-    colors[3 * 2] = 0.8 * col_r;
-    colors[3 * 2 + 1] = 0.8 * col_g;
-    colors[3 * 2 + 2] = 0.8 * col_b;
-
-    // D
-    vertices[3*3]     = r_link/2;   //x
-    vertices[3*3 + 1] = l_link/2;   //y
-    vertices[3*3 + 2] = ep_link/2;  //z
-
-    colors[3 * 3] = 0.8 * col_r;
-    colors[3 * 3 + 1] = 0.8 * col_g;
-    colors[3 * 3 + 2] = 0.8 * col_b;
-
-
-    // E
-    vertices[3*4]     = r_link/2;    //x
-    vertices[3*4 + 1] = -l_link/2;   //y
-    vertices[3*4 + 2] = ep_link/2;   //z
-
-    colors[3 * 4] = 0.8 * col_r;
-    colors[3 * 4 + 1] = 0.8 * col_g;
-    colors[3 * 4 + 2] = 0.8 * col_b;
-
-    // F
-    vertices[3*5]     = l_link/2;    //x
-    vertices[3*5 + 1] = -r_link/2;   //y
-    vertices[3*5 + 2] = ep_link/2;   //z
-
-    colors[3 * 5] = 0.8 * col_r;
-    colors[3 * 5 + 1] = 0.8 * col_g;
-    colors[3 * 5 + 2] = 0.8 * col_b;
-
-    // G
-    vertices[3*6]     = -l_link/2;    //x
-    vertices[3*6 + 1] = -r_link/2;   //y
-    vertices[3*6 + 2] = ep_link/2;   //z
-
-    colors[3 * 6] = 0.8 * col_r;
-    colors[3 * 6 + 1] = 0.8 * col_g;
-    colors[3 * 6 + 2] = 0.8 * col_b;
-
-
-    // H
-    vertices[3*7]     = -r_link/2;    //x
-    vertices[3*7 + 1] = -l_link/2;   //y
-    vertices[3*7 + 2] = ep_link/2;   //z
-
-    colors[3 * 8] =  col_r;
-    colors[3 * 8 + 1] =  col_g;
-    colors[3 * 8 + 2] =  col_b;
-
-
-
-/*
-    for (int i=0; i<8; i++){ //On s'occupe des 8 premiers sommets de la première face
-
-
-
-    }*/
-
-
-    //
-
-    glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, vertices);
-    glVertexAttribPointer(m_colAttr, 3, GL_FLOAT, GL_FALSE, 0, colors);
+    glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, link->getVertices());
+    glVertexAttribPointer(m_colAttr, 3, GL_FLOAT, GL_FALSE, 0, link->getColors());
 
     glEnableVertexAttribArray(m_posAttr);  // rend le VAA accessible pour glDrawArrays
     glEnableVertexAttribArray(m_colAttr);
@@ -564,6 +464,8 @@ void GLArea::paintLink(float ep_link, float r_link, float edge, float col_r, flo
 
 
     glDrawArrays(GL_POLYGON, 0, 8); // Première face
+
+    //glDrawArrays(GL_POLYGON, 8, 16); // Deuxième face
 
 
 
