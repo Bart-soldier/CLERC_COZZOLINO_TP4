@@ -55,6 +55,7 @@ protected:
     void paintTP3(QMatrix4x4 matrix);
     void paintCylinder(float ep_cyl, float r_cyl, int nb_fac, float col_r, float col_g, float col_b);
     void paintLink(float x, float y, float ep_link, float r_link, float edge, float rotate, float col_r, float col_g, float col_b);
+    void paintGear(float ep_roue, float r_roue, int h_dent, int nb_dent, float col_r, float col_g, float col_b);
 
 private:
     double m_angle = 0;

@@ -108,6 +108,13 @@ void GLArea::paintGL()
     matrix.rotate(m_cameraAngle, 0, 1, 0);
 
     //paintTP3(matrix);
+    float ep_roue = 1;
+    float r_roue = 1.5;
+    float h_dent = 1;
+    int nb_dent = 3;
+
+    m_program->setUniformValue(m_matrixUniform, matrix); // On applique la matrice
+    paintGear(ep_roue, r_roue, h_dent, nb_dent, 0, 0, 1);
 
     m_program->release();
 }
@@ -343,7 +350,6 @@ void GLArea::paintCylinder(float ep_cyl, float r_cyl, int nb_fac, float col_r, f
     // On initialise le tableau des sommets
     GLfloat vertices[nb_vertices];
 
-
     // On intialise le tableau des couleurs
     GLfloat colors[nb_vertices];
 
@@ -427,6 +433,142 @@ void GLArea::paintCylinder(float ep_cyl, float r_cyl, int nb_fac, float col_r, f
     glDisableVertexAttribArray(m_colAttr);
 }
 
+/**
+ * @brief GLArea::paintCylinder Dessine un cylindre
+ * @param ep_cyl L'épaisseur du cylindre
+ * @param r_cyl Le rayon de la face du cylinder
+ * @param nb_fac Le nombre de parties constituant la face
+ * @param col_r La valeur R de la couleur en RGB
+ * @param col_g La valeur G de la couleur en RGB
+ * @param col_b La valeur B de la couleur en RGB
+ */
+void GLArea::paintGear(float ep_roue, float r_roue, int h_dent, int nb_dent, float col_r, float col_g, float col_b)
+{
+    float alpha = 360/nb_dent;
+
+    // On a deux faces par cylindre et nb_fac quadrilatères pour le côté
+    // On a nb_fac sommets par face
+    // On a 4 sommets par quadrilatère pour le côté
+    // On a trois coordonnée par sommet
+    //int nb_vertices = 2 * nb_fac * 3 + nb_fac * 4 * 3;
+    int nb_vertices = 4 * nb_dent * 3;
+
+    // On initialise le tableau des sommets
+    GLfloat vertices[nb_vertices];
+
+    // On intialise le tableau des couleurs
+    GLfloat colors[nb_vertices];
+
+    int index = 0; // Index des tableaux
+
+    // On fait le tour de la roue
+    for(int angle = 0; angle < 360; angle += alpha) {
+        // B
+        vertices[3 * index] = static_cast<GLfloat>(cos(angle * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin(angle * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 2] = -ep_roue/2;
+        colors[3 * index] = col_r;
+        colors[3 * index + 1] = col_g;
+        colors[3 * index + 2] = col_b;
+        index++;
+
+        // C
+        vertices[3 * index] = static_cast<GLfloat>(cos(angle/4 * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin(angle/4 * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 2] = -ep_roue/2;
+        colors[3 * index] = col_r;
+        colors[3 * index + 1] = col_g;
+        colors[3 * index + 2] = col_b;
+        index++;
+
+        // D
+        vertices[3 * index] = static_cast<GLfloat>(cos(angle/2 * (3.14/180)) * (r_roue + h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin(angle/2 * (3.14/180)) * (r_roue + h_dent/2));
+        vertices[3 * index + 2] = -ep_roue/2;
+        colors[3 * index] = col_r;
+        colors[3 * index + 1] = col_g;
+        colors[3 * index + 2] = col_b;
+        index++;
+
+        // E
+        vertices[3 * index] = static_cast<GLfloat>(cos(3 * angle/4 * (3.14/180)) * (r_roue + h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin(3 * angle/4 * (3.14/180)) * (r_roue + h_dent/2));
+        vertices[3 * index + 2] = -ep_roue/2;
+        colors[3 * index] = col_r;
+        colors[3 * index + 1] = col_g;
+        colors[3 * index + 2] = col_b;
+        index++;
+    }
+
+/*
+    int secondFaceIndex = index; // Index du premier élément pour le dessin de la seconde face
+
+    // On fait le tour du cylindre
+    for(int angle = 0; angle < 360; angle += alpha) {
+        vertices[3 * index] = static_cast<GLfloat>(cos(angle * (3.14/180)) * r_cyl);
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin(angle * (3.14/180)) * r_cyl);
+        vertices[3 * index + 2] = ep_cyl/2;
+        colors[3 * index] = col_r;
+        colors[3 * index + 1] = col_g;
+        colors[3 * index + 2] = col_b;
+        index++;
+    }
+
+    int sideIndex = index; // Index du premier élément pour le dessin du côté
+
+    // On fait le tour du cylindre
+    for(int angle = 0; angle < 360; angle += alpha) {
+        vertices[3 * index] = static_cast<GLfloat>(cos(angle * (3.14/180)) * r_cyl);
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin(angle * (3.14/180)) * r_cyl);
+        vertices[3 * index + 2] = ep_cyl/2;
+        colors[3 * index] = 0.8 * col_r;
+        colors[3 * index + 1] = 0.8 * col_g;
+        colors[3 * index + 2] = 0.8 * col_b;
+        index++;
+
+        vertices[3 * index] = static_cast<GLfloat>(cos(angle * (3.14/180)) * r_cyl);
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin(angle * (3.14/180)) * r_cyl);
+        vertices[3 * index + 2] = -ep_cyl/2;
+        colors[3 * index] = 0.8 * col_r;
+        colors[3 * index + 1] = 0.8 * col_g;
+        colors[3 * index + 2] = 0.8 * col_b;
+        index++;
+
+        vertices[3 * index] = static_cast<GLfloat>(cos((angle + alpha) * (3.14/180)) * r_cyl);
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin((angle + alpha) * (3.14/180)) * r_cyl);
+        vertices[3 * index + 2] = -ep_cyl/2;
+        colors[3 * index] = 0.8 * col_r;
+        colors[3 * index + 1] = 0.8 * col_g;
+        colors[3 * index + 2] = 0.8 * col_b;
+        index++;
+
+        vertices[3 * index] = static_cast<GLfloat>(cos((angle + alpha) * (3.14/180)) * r_cyl);
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin((angle + alpha) * (3.14/180)) * r_cyl);
+        vertices[3 * index + 2] = ep_cyl/2;
+        colors[3 * index] = 0.8 * col_r;
+        colors[3 * index + 1] = 0.8 * col_g;
+        colors[3 * index + 2] = 0.8 * col_b;
+        index++;
+    }*/
+
+    glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, vertices);
+    glVertexAttribPointer(m_colAttr, 3, GL_FLOAT, GL_FALSE, 0, colors);
+
+    glEnableVertexAttribArray(m_posAttr);  // rend le VAA accessible pour glDrawArrays
+    glEnableVertexAttribArray(m_colAttr);
+
+    glDrawArrays(GL_POLYGON, 0, nb_dent * 4); // Première face
+    /*
+    glDrawArrays(GL_POLYGON, secondFaceIndex, nb_fac); // Deuxième face
+    // Côté
+    for(int i = 0; i < nb_fac; i++) {
+        glDrawArrays(GL_QUADS, sideIndex + i * 4, 4);
+    }*/
+
+    glDisableVertexAttribArray(m_posAttr);
+    glDisableVertexAttribArray(m_colAttr);
+}
+
 void GLArea::paintLink(float x, float y, float ep_link, float r_link, float edge, float rotate, float col_r, float col_g, float col_b){
 
     float l_link = r_link - edge/2;
@@ -481,10 +623,9 @@ void GLArea::paintLink(float x, float y, float ep_link, float r_link, float edge
     //
 
 
+
+
+
     glDisableVertexAttribArray(m_posAttr);
     glDisableVertexAttribArray(m_colAttr);
 }
-
-
-
-
