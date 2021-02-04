@@ -481,6 +481,9 @@ void GLArea::paintLink(float x, float y, float ep_link, float r_link, float edge
     //
 
 
+
+
+
     glDisableVertexAttribArray(m_posAttr);
     glDisableVertexAttribArray(m_colAttr);
 }
