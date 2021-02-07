@@ -13,6 +13,7 @@ public:
     GLfloat* getVertices();
     GLfloat* getColors();
     GLfloat vertices[20*3];
+    GLfloat temp[20*3];
     GLfloat colors[20*3];
 
 };

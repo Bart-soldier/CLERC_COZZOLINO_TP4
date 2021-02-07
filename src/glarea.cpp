@@ -117,10 +117,12 @@ void GLArea::paintGL()
     //QMatrix4x4 matrixCopy_1 = matrix; // Push
 
     //matrixCopy_1.rotate(-10, 0, 0, 1);
-    //m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // On applique la matrice
+    m_program->setUniformValue(m_matrixUniform, matrix); // On applique la matrice
 
-    this->paintLink(1, 1, 0.2, 0.8, 0.8, 0.8);
-    //matrixCopy_1.translate(0, 0, -1/2);
+    this->paintLink(0.3, 1, 0.2, 0.8, 0.8, 0.8);
+    //matrix.translate(0, 0, 1);
+
+    //this->paintLink(0.3, 1, 0.2, 0.8, 0.8, 0.8);
 
     m_program->setUniformValue(m_matrixUniform, matrix); // Pop
 
@@ -452,26 +454,38 @@ void GLArea::paintCylinder(float ep_cyl, float r_cyl, int nb_fac, float col_r, f
 void GLArea::paintLink(float ep_link, float r_link, float edge, float col_r, float col_g, float col_b){
 
     Link *link = new Link(ep_link, r_link, edge, col_r, col_g, col_b);
+    GLfloat *vertices = link->getVertices();
 
     qDebug() << "  PAINTLINK  ";
 
-    glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, link->getVertices());
+    glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, vertices);
     glVertexAttribPointer(m_colAttr, 3, GL_FLOAT, GL_FALSE, 0, link->getColors());
 
     glEnableVertexAttribArray(m_posAttr);  // rend le VAA accessible pour glDrawArrays
     glEnableVertexAttribArray(m_colAttr);
 
 
+    glDrawArrays(GL_POLYGON, 0, 4); // Première face
+    glDrawArrays(GL_POLYGON, 8, 8); // Deuxième face
 
-    glDrawArrays(GL_POLYGON, 0, 8); // Première face
 
-    //glDrawArrays(GL_POLYGON, 8, 16); // Deuxième face
 
+
+    //
+
+
+
+
+
+    //qDebug() << __FUNCTION__ << link->getVertices(0, 1, 8, 9)[0] << sender();
+
+    glDrawArrays(GL_POLYGON, 0, 4);
 
 
 
     glDisableVertexAttribArray(m_posAttr);
     glDisableVertexAttribArray(m_colAttr);
+
 }
 
 

@@ -7,7 +7,7 @@ Link::Link(float ep_link, float r_link, float edge, float col_r, float col_g, fl
 
         // Point A
         createVertice(0, -r_link/2, l_link/2, ep_link/2);
-        createColor(0, col_r, col_g, col_b);
+        createColor(0, col_r, 0.2*col_g, 0.2*col_b);
 
         // B
         createVertice(1, -l_link/2, r_link/2, ep_link/2);
@@ -39,13 +39,13 @@ Link::Link(float ep_link, float r_link, float edge, float col_r, float col_g, fl
         createColor(7, col_r, col_g, col_b);
 
 
-/*
+
         // Point A'
-        createVertice(8, -r_link/2, l_link/2, -(ep_link/2));
-        createColor(8, col_r, col_g, col_b);
+        createVertice(8, -r_link/2, l_link/2, -ep_link/2);
+        createColor(8, col_r, 0.2*col_g, 0.2*col_b);
 
         // B'
-        createVertice(9, -l_link/2, r_link/2, -(ep_link/2));
+        createVertice(9, -l_link/2, r_link/2, -ep_link/2);
         createColor(9, col_r, col_g, col_b);
 
         // C'
@@ -72,7 +72,7 @@ Link::Link(float ep_link, float r_link, float edge, float col_r, float col_g, fl
         // H'
         createVertice(15, -r_link/2, -l_link/2, -(ep_link/2));
         createColor(15, col_r, col_g, col_b);
-*/
+
 
 
 
@@ -93,6 +93,28 @@ void Link::createColor(int index, float col_r, float col_g, float col_b){
 }
 
 GLfloat* Link::getVertices(){
+
+    /*
+    temp[0] = vertices[0];
+    temp[0] = vertices[0];
+    temp[0] = vertices[0];
+
+    temp[1] = vertices[1];
+    temp[1] = vertices[1];
+    temp[1] = vertices[1];
+
+    temp[8] = vertices[8];
+    temp[8] = vertices[8];
+    temp[8] = vertices[8];
+
+    temp[9] = vertices[9];
+    temp[9] = vertices[9];
+    temp[9] = vertices[9];
+
+
+    return temp;
+    */
+
     return vertices;
 }
 
