@@ -454,34 +454,25 @@ void GLArea::paintCylinder(float ep_cyl, float r_cyl, int nb_fac, float col_r, f
 void GLArea::paintLink(float ep_link, float r_link, float edge, float col_r, float col_g, float col_b){
 
     Link *link = new Link(ep_link, r_link, edge, col_r, col_g, col_b);
-    GLfloat *vertices = link->getVertices();
 
     qDebug() << "  PAINTLINK  ";
 
-    glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, vertices);
+    glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, link->getVertices());
     glVertexAttribPointer(m_colAttr, 3, GL_FLOAT, GL_FALSE, 0, link->getColors());
 
     glEnableVertexAttribArray(m_posAttr);  // rend le VAA accessible pour glDrawArrays
     glEnableVertexAttribArray(m_colAttr);
 
 
-    glDrawArrays(GL_POLYGON, 0, 4); // Première face
+    glDrawArrays(GL_POLYGON, 0, 8); // Première face
     glDrawArrays(GL_POLYGON, 8, 8); // Deuxième face
 
+    // Dessine les faces qui sont à l'origine de l'épaisseur
+    for (int i=0; i<8; i++){
+        glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, link->getVertices(i));
 
-
-
-    //
-
-
-
-
-
-    //qDebug() << __FUNCTION__ << link->getVertices(0, 1, 8, 9)[0] << sender();
-
-    glDrawArrays(GL_POLYGON, 0, 4);
-
-
+        glDrawArrays(GL_POLYGON, 0, 4); // Première face
+    }
 
     glDisableVertexAttribArray(m_posAttr);
     glDisableVertexAttribArray(m_colAttr);
