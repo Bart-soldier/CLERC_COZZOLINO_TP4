@@ -109,9 +109,7 @@ void GLArea::paintGL()
     matrix.rotate(m_cameraAngle, 0, 1, 0);
 
     //paintTP3(matrix);
-
-
-
+    paintTP4(matrix);
 
 
     //QMatrix4x4 matrixCopy_1 = matrix; // Push
@@ -125,10 +123,6 @@ void GLArea::paintGL()
     //this->paintLink(0.3, 1, 0.2, 0.8, 0.8, 0.8);
 
     m_program->setUniformValue(m_matrixUniform, matrix); // Pop
-
-
-
-
 
 
     m_program->release();
@@ -344,6 +338,34 @@ void GLArea::paintTP3(QMatrix4x4 matrix)
 }
 
 /**
+ * @brief GLArea::paintTP4 Créer la représentation graphique telle que décrite dans le TP3
+ * @param matrix La matrice de transformation initiale
+ */
+void GLArea::paintTP4(QMatrix4x4 matrix)
+{
+    float ep_roue = 1;
+    float r_roue = 1.5;
+    float h_dent = 0.5;
+    int nb_dent = 20;
+
+    // Gros engrenage
+    QMatrix4x4 matrixCopy_1 = matrix; // Push
+    matrixCopy_1.rotate(-m_angle, 0, 0, 1); // Rotation axe z
+    matrixCopy_1.translate(-2.5, 0, 0); // Translation en x
+    m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // On applique la matrice
+    paintGear(ep_roue, r_roue, h_dent, nb_dent, 0, 0.8, 0); // On dessine un engrenage vert
+    m_program->setUniformValue(m_matrixUniform, matrix); // Pop
+
+    // Petit engrenage
+    matrixCopy_1 = matrix; // Push
+    matrixCopy_1.rotate(-m_angle, 0, 0, 1); // Rotation axe z
+    matrixCopy_1.translate(2.5, 0, 0); // Translation en x
+    m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // On applique la matrice
+    paintGear(ep_roue/2, r_roue/2, h_dent/2, nb_dent/2, 0, 0.8, 0); // On dessine un engrenage vert, deux fois plus petit que le premier
+    m_program->setUniformValue(m_matrixUniform, matrix); // Pop
+}
+
+/**
  * @brief GLArea::paintCylinder Dessine un cylindre
  * @param ep_cyl L'épaisseur du cylindre
  * @param r_cyl Le rayon de la face du cylinder
@@ -364,7 +386,6 @@ void GLArea::paintCylinder(float ep_cyl, float r_cyl, int nb_fac, float col_r, f
 
     // On initialise le tableau des sommets
     GLfloat vertices[nb_vertices];
-
 
     // On intialise le tableau des couleurs
     GLfloat colors[nb_vertices];
@@ -449,7 +470,264 @@ void GLArea::paintCylinder(float ep_cyl, float r_cyl, int nb_fac, float col_r, f
     glDisableVertexAttribArray(m_colAttr);
 }
 
-//float x, float y, float ep_link, float r_link, float edge, float rotate, float col_r, float col_g, float col_b
+
+/**
+ * @brief GLArea::paintGear Dessine un engrenage
+ * @param ep_roue L'épaisseur de l'engrenage
+ * @param r_roue Le rayon de l'engrenage
+ * @param h_dent La hauteur d'une dent de l'engrenage
+ * @param nb_dent Le nombre de dents de l'engrenage
+ * @param col_r La valeur R de la couleur en RGB
+ * @param col_g La valeur G de la couleur en RGB
+ * @param col_b La valeur B de la couleur en RGB
+ */
+void GLArea::paintGear(float ep_roue, float r_roue, float h_dent, int nb_dent, float col_r, float col_g, float col_b)
+{
+    float alpha = 360/nb_dent;
+
+    // On a quatre sommets par dent et nb_dent dents par face
+    // On a besoin d'un sommet supplémentaire pour représenter l'origine sur chaque face
+    // Et un dernier sommet pour le dernier triangle qui complète la face
+    // On a deux faces par engrenage
+    // On a quatre quadrilatère (10 sommets uniques) par dent et nb_dent dents
+    int nb_vertices = (4 * nb_dent + 2) * 3 * 2 + 10 * nb_dent * 3;
+
+    // On initialise le tableau des sommets
+    GLfloat vertices[nb_vertices];
+
+    // On intialise le tableau des couleurs
+    GLfloat colors[nb_vertices];
+
+    int index = 0; // Index des tableaux
+
+    // L'origine
+    vertices[3 * index] = 0;
+    vertices[3 * index + 1] = 0;
+    vertices[3 * index + 2] = -ep_roue/2;
+    colors[3 * index] = col_r;
+    colors[3 * index + 1] = col_g;
+    colors[3 * index + 2] = col_b;
+    index++;
+
+    // On fait le tour de l'engrenage
+    for(int angle = 0; angle < 360; angle += alpha) {
+        // B
+        vertices[3 * index] = static_cast<GLfloat>(cos(angle * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin(angle * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 2] = -ep_roue/2;
+        colors[3 * index] = col_r;
+        colors[3 * index + 1] = col_g;
+        colors[3 * index + 2] = col_b;
+        index++;
+
+        // C
+        vertices[3 * index] = static_cast<GLfloat>(cos((angle + alpha/4) * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin((angle + alpha/4) * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 2] = -ep_roue/2;
+        colors[3 * index] = col_r;
+        colors[3 * index + 1] = col_g;
+        colors[3 * index + 2] = col_b;
+        index++;
+
+        // D
+        vertices[3 * index] = static_cast<GLfloat>(cos((angle + alpha/2) * (3.14/180)) * (r_roue + h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin((angle + alpha/2) * (3.14/180)) * (r_roue + h_dent/2));
+        vertices[3 * index + 2] = -ep_roue/2;
+        colors[3 * index] = col_r;
+        colors[3 * index + 1] = col_g;
+        colors[3 * index + 2] = col_b;
+        index++;
+
+        // E
+        vertices[3 * index] = static_cast<GLfloat>(cos((angle + 3 * alpha/4) * (3.14/180)) * (r_roue + h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin((angle + 3 * alpha/4) * (3.14/180)) * (r_roue + h_dent/2));
+        vertices[3 * index + 2] = -ep_roue/2;
+        colors[3 * index] = col_r;
+        colors[3 * index + 1] = col_g;
+        colors[3 * index + 2] = col_b;
+        index++;
+    }
+
+    // Le dernier sommet
+    vertices[3 * index] = static_cast<GLfloat>(r_roue - h_dent/2);
+    vertices[3 * index + 1] =  0;
+    vertices[3 * index + 2] = -ep_roue/2;
+    colors[3 * index] = col_r;
+    colors[3 * index + 1] = col_g;
+    colors[3 * index + 2] = col_b;
+    index++;
+
+
+    int secondFaceIndex = index; // Index du premier élément pour le dessin de la seconde face
+
+    // L'origine
+    vertices[3 * index] = 0;
+    vertices[3 * index + 1] = 0;
+    vertices[3 * index + 2] = ep_roue/2;
+    colors[3 * index] = col_r;
+    colors[3 * index + 1] = col_g;
+    colors[3 * index + 2] = col_b;
+    index++;
+
+    // On fait le tour de l'engrenage
+    for(int angle = 0; angle < 360; angle += alpha) {
+        // B
+        vertices[3 * index] = static_cast<GLfloat>(cos(angle * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin(angle * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 2] = ep_roue/2;
+        colors[3 * index] = col_r;
+        colors[3 * index + 1] = col_g;
+        colors[3 * index + 2] = col_b;
+        index++;
+
+        // C
+        vertices[3 * index] = static_cast<GLfloat>(cos((angle + alpha/4) * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin((angle + alpha/4) * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 2] = ep_roue/2;
+        colors[3 * index] = col_r;
+        colors[3 * index + 1] = col_g;
+        colors[3 * index + 2] = col_b;
+        index++;
+
+        // D
+        vertices[3 * index] = static_cast<GLfloat>(cos((angle + alpha/2) * (3.14/180)) * (r_roue + h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin((angle + alpha/2) * (3.14/180)) * (r_roue + h_dent/2));
+        vertices[3 * index + 2] = ep_roue/2;
+        colors[3 * index] = col_r;
+        colors[3 * index + 1] = col_g;
+        colors[3 * index + 2] = col_b;
+        index++;
+
+        // E
+        vertices[3 * index] = static_cast<GLfloat>(cos((angle + 3 * alpha/4) * (3.14/180)) * (r_roue + h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin((angle + 3 * alpha/4) * (3.14/180)) * (r_roue + h_dent/2));
+        vertices[3 * index + 2] = ep_roue/2;
+        colors[3 * index] = col_r;
+        colors[3 * index + 1] = col_g;
+        colors[3 * index + 2] = col_b;
+        index++;
+    }
+
+    // Le dernier sommet
+    vertices[3 * index] = static_cast<GLfloat>(r_roue - h_dent/2);
+    vertices[3 * index + 1] =  0;
+    vertices[3 * index + 2] = ep_roue/2;
+    colors[3 * index] = col_r;
+    colors[3 * index + 1] = col_g;
+    colors[3 * index + 2] = col_b;
+    index++;
+
+    int sideIndex = index; // Index du premier élément pour le dessin du côté
+
+    // On fait le tour de l'engrenage
+    for(int angle = 0; angle < 360; angle += alpha) {
+        // B
+        vertices[3 * index] = static_cast<GLfloat>(cos(angle * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin(angle * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 2] = ep_roue/2;
+        colors[3 * index] = 0.8 * col_r;
+        colors[3 * index + 1] = 0.8 * col_g;
+        colors[3 * index + 2] = 0.8 * col_b;
+        index++;
+
+        // B'
+        vertices[3 * index] = static_cast<GLfloat>(cos(angle * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin(angle * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 2] = -ep_roue/2;
+        colors[3 * index] = 0.8 * col_r;
+        colors[3 * index + 1] = 0.8 * col_g;
+        colors[3 * index + 2] = 0.8 * col_b;
+        index++;
+
+        // C
+        vertices[3 * index] = static_cast<GLfloat>(cos((angle + alpha/4) * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin((angle + alpha/4) * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 2] = ep_roue/2;
+        colors[3 * index] = 0.8 * col_r;
+        colors[3 * index + 1] = 0.8 * col_g;
+        colors[3 * index + 2] = 0.8 * col_b;
+        index++;
+
+        // C'
+        vertices[3 * index] = static_cast<GLfloat>(cos((angle + alpha/4) * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin((angle + alpha/4) * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 2] = -ep_roue/2;
+        colors[3 * index] = 0.8 * col_r;
+        colors[3 * index + 1] = 0.8 * col_g;
+        colors[3 * index + 2] = 0.8 * col_b;
+        index++;
+
+        // D
+        vertices[3 * index] = static_cast<GLfloat>(cos((angle + alpha/2) * (3.14/180)) * (r_roue + h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin((angle + alpha/2) * (3.14/180)) * (r_roue + h_dent/2));
+        vertices[3 * index + 2] = ep_roue/2;
+        colors[3 * index] = 0.8 * col_r;
+        colors[3 * index + 1] = 0.8 * col_g;
+        colors[3 * index + 2] = 0.8 * col_b;
+        index++;
+
+        // D'
+        vertices[3 * index] = static_cast<GLfloat>(cos((angle + alpha/2) * (3.14/180)) * (r_roue + h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin((angle + alpha/2) * (3.14/180)) * (r_roue + h_dent/2));
+        vertices[3 * index + 2] = -ep_roue/2;
+        colors[3 * index] = 0.8 * col_r;
+        colors[3 * index + 1] = 0.8 * col_g;
+        colors[3 * index + 2] = 0.8 * col_b;
+        index++;
+
+        // E
+        vertices[3 * index] = static_cast<GLfloat>(cos((angle + 3 * alpha/4) * (3.14/180)) * (r_roue + h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin((angle + 3 * alpha/4) * (3.14/180)) * (r_roue + h_dent/2));
+        vertices[3 * index + 2] = ep_roue/2;
+        colors[3 * index] = 0.8 * col_r;
+        colors[3 * index + 1] = 0.8 * col_g;
+        colors[3 * index + 2] = 0.8 * col_b;
+        index++;
+
+        // E'
+        vertices[3 * index] = static_cast<GLfloat>(cos((angle + 3 * alpha/4) * (3.14/180)) * (r_roue + h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin((angle + 3 * alpha/4) * (3.14/180)) * (r_roue + h_dent/2));
+        vertices[3 * index + 2] = -ep_roue/2;
+        colors[3 * index] = 0.8 * col_r;
+        colors[3 * index + 1] = 0.8 * col_g;
+        colors[3 * index + 2] = 0.8 * col_b;
+        index++;
+
+        // F
+        vertices[3 * index] = static_cast<GLfloat>(cos((angle + alpha) * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin((angle + alpha) * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 2] = ep_roue/2;
+        colors[3 * index] = 0.8 * col_r;
+        colors[3 * index + 1] = 0.8 * col_g;
+        colors[3 * index + 2] = 0.8 * col_b;
+        index++;
+
+        // F'
+        vertices[3 * index] = static_cast<GLfloat>(cos((angle + alpha) * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 1] = static_cast<GLfloat>(sin((angle + alpha) * (3.14/180)) * (r_roue - h_dent/2));
+        vertices[3 * index + 2] = -ep_roue/2;
+        colors[3 * index] = 0.8 * col_r;
+        colors[3 * index + 1] = 0.8 * col_g;
+        colors[3 * index + 2] = 0.8 * col_b;
+        index++;
+    }
+
+    glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, vertices);
+    glVertexAttribPointer(m_colAttr, 3, GL_FLOAT, GL_FALSE, 0, colors);
+
+    glEnableVertexAttribArray(m_posAttr);  // rend le VAA accessible pour glDrawArrays
+    glEnableVertexAttribArray(m_colAttr);
+
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4 * nb_dent + 2); // Première face
+    glDrawArrays(GL_TRIANGLE_FAN, secondFaceIndex, 4 * nb_dent + 2); // Deuxième face
+    // Côtés
+    for(int i = 0; i < nb_dent; i++) {
+        glDrawArrays(GL_QUAD_STRIP, sideIndex + i * 10, 10);
+    }
+
+    glDisableVertexAttribArray(m_posAttr);
+    glDisableVertexAttribArray(m_colAttr);
+}
 
 void GLArea::paintLink(float ep_link, float r_link, float edge, float col_r, float col_g, float col_b){
 
@@ -476,9 +754,4 @@ void GLArea::paintLink(float ep_link, float r_link, float edge, float col_r, flo
 
     glDisableVertexAttribArray(m_posAttr);
     glDisableVertexAttribArray(m_colAttr);
-
 }
-
-
-
-

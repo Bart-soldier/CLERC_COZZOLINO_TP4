@@ -53,8 +53,12 @@ protected:
     void mouseMoveEvent(QMouseEvent *ev) override;
 
     void paintTP3(QMatrix4x4 matrix);
+    void paintTP4(QMatrix4x4 matrix);
     void paintCylinder(float ep_cyl, float r_cyl, int nb_fac, float col_r, float col_g, float col_b);
+    
     void paintLink(float ep_link, float r_link, float edge, float col_r, float col_g, float col_b);
+
+    void paintGear(float ep_roue, float r_roue, float h_dent, int nb_dent, float col_r, float col_g, float col_b);
 
 private:
     double m_angle = 0;
