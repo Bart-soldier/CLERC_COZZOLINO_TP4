@@ -22,21 +22,11 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
-        link.cpp \
-        link.cpp \
-        link.cpp \
-        link.cpp \
-        link.cpp \
-        link.cpp \
         princ.cpp \
         glarea.cpp
 
 HEADERS  += princ.h \
-        glarea.h \
-        link.h \
-        link.h \
-        link.h \
-        link.h
+        glarea.h
 
 FORMS    += princ.ui
 
