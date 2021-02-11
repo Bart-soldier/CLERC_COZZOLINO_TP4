@@ -117,14 +117,19 @@ void GLArea::paintGL()
     //QMatrix4x4 matrixCopy_1 = matrix; // Push
 
     //matrixCopy_1.rotate(-10, 0, 0, 1);
-    m_program->setUniformValue(m_matrixUniform, matrix); // On applique la matrice
+    //m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // On applique la matrice
 
+<<<<<<< HEAD
 
     this->paintLink(0.3, 1, 0.2, 0.8, 0.8, 0.8);
 
     //matrix.translate(0, 0, 1);
 
     //this->paintLink(0.3, 1, 0.2, 0.8, 0.8, 0.8);
+=======
+    this->paintLink(1, 1, 0.2, 0.8, 0.8, 0.8);
+    //matrixCopy_1.translate(0, 0, -1/2);
+>>>>>>> parent of 0612e46 (two faces)
 
     m_program->setUniformValue(m_matrixUniform, matrix); // Pop
 
@@ -466,6 +471,7 @@ void GLArea::paintLink(float ep_link, float r_link, float edge, float col_r, flo
     glEnableVertexAttribArray(m_colAttr);
 
 
+<<<<<<< HEAD
     glDrawArrays(GL_POLYGON, 0, 8); // Première face
     glDrawArrays(GL_POLYGON, 8, 8); // Deuxième face
 
@@ -475,10 +481,18 @@ void GLArea::paintLink(float ep_link, float r_link, float edge, float col_r, flo
 
         glDrawArrays(GL_POLYGON, 0, 4); // Première face
     }
+=======
+
+    glDrawArrays(GL_POLYGON, 0, 8); // Première face
+
+    //glDrawArrays(GL_POLYGON, 8, 16); // Deuxième face
+
+
+
+>>>>>>> parent of 0612e46 (two faces)
 
     glDisableVertexAttribArray(m_posAttr);
     glDisableVertexAttribArray(m_colAttr);
-
 }
 
 
