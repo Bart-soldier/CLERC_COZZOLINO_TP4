@@ -2,7 +2,7 @@
   CLERC Billy, COZZOLINO Christine
   Programmation Graphique
   TP4
-  04/02/2021
+  11/02/2021
 **/
 
 #include "glarea.h"
@@ -327,7 +327,7 @@ void GLArea::paintTP3(QMatrix4x4 matrix)
  * @param matrix La matrice de transformation initiale
  */
 void GLArea::paintTP4(QMatrix4x4 matrix)
-{
+{    
     // Initialisation des propriétés des éléments graphique
     float ep_roue = 1;
     float r_roue = 1.5;
@@ -348,7 +348,7 @@ void GLArea::paintTP4(QMatrix4x4 matrix)
     matrixCopy_1 = matrix; // Push
     matrixCopy_1.translate(-2.5, 0, 0); // Translation en x
     matrixCopy_1.rotate(-alphaBig/8, 0, 0, 1); // Pour aligner avec les maillons
-    matrixCopy_1.rotate(m_angle, 0, 0, 1); // Rotation axe z
+    matrixCopy_1.rotate(fmod(m_angle, alphaBig), 0, 0, 1); // Rotation axe z
     m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // On applique la matrice
     paintGear(ep_roue, r_roue, h_dent, nb_dent, 0, 0.8, 0); // On dessine un engrenage vert
     m_program->setUniformValue(m_matrixUniform, matrix); // Pop
@@ -357,7 +357,7 @@ void GLArea::paintTP4(QMatrix4x4 matrix)
     matrixCopy_1 = matrix; // Push
     matrixCopy_1.translate(2.5, 0, 0); // Translation en x
     matrixCopy_1.rotate(-alphaSmall/8, 0, 0, 1); // Pour aligner avec les maillons
-    matrixCopy_1.rotate(m_angle, 0, 0, 1); // Rotation axe z
+    matrixCopy_1.rotate(2 * fmod(m_angle, alphaSmall), 0, 0, 1); // Rotation axe z
     m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // On applique la matrice
     paintGear(ep_roue/2, r_roue/2, h_dent, nb_dent/2, 0, 0.8, 0); // On dessine un engrenage vert, deux fois plus petit que le premier
     m_program->setUniformValue(m_matrixUniform, matrix); // Pop
@@ -365,10 +365,10 @@ void GLArea::paintTP4(QMatrix4x4 matrix)
     matrixCopy_1 = matrix; // Push
     matrixCopy_1.translate(-2.5, 0, 0); // Translation au centre du gros engrenage
 
-    // Maillons A à B
-    for(int i = 5; i < 16; i++) {
-        float xi = (r_roue + h_dent/4) * cos((m_angle + i * alphaBig) * 3.14/180);
-        float yi = (r_roue + h_dent/4) * sin((m_angle + i * alphaBig) * 3.14/180);
+    // Maillons A à B (B exclu)
+    for(int i = 4; i < 16; i++) {
+        float xi = (r_roue + h_dent/4) * cos((fmod(m_angle, alphaBig) + i * alphaBig) * 3.14/180);
+        float yi = (r_roue + h_dent/4) * sin((fmod(m_angle, alphaBig) + i * alphaBig) * 3.14/180);
 
         matrixCopy_2 = matrixCopy_1; // Push
         matrixCopy_2.translate(xi, yi, 0);
@@ -377,17 +377,19 @@ void GLArea::paintTP4(QMatrix4x4 matrix)
         m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // Pop
     }
 
+    float pas = 0.6/alphaBig; // Pour l'animation des maillons sur les tangentes
+
     // Trouvons l'équation de la tangeante au point B : y = ax + b
     // a
-    float xB = (r_roue + h_dent/4) * cos((-4 * alphaBig - 17 * alphaBig/32) * 3.14/180);
-    float yB = (r_roue + h_dent/4) * sin((-4 * alphaBig - 17 * alphaBig/32) * 3.14/180);
+    float xB = (r_roue + 3 * h_dent/16) * cos((-4 * alphaBig - 17 * alphaBig/32) * 3.14/180);
+    float yB = (r_roue + 3 * h_dent/16) * sin((-4 * alphaBig - 17 * alphaBig/32) * 3.14/180);
     float a = -xB/yB;
     // b
     float b = yB - a * xB;
 
-    // Maillons B à C
-    for(float i = 0.25; i <= 5.05; i+=0.6) {
-        float xi = xB + i;
+    // Maillons B à C (C exclu)
+    for(float i = 0.25; i <= 4.45; i+=0.6) {
+        float xi = xB + i + fmod(m_angle, alphaBig) * pas;
         float yi = a * xi + b;
 
         matrixCopy_2 = matrixCopy_1; // Push
@@ -399,15 +401,15 @@ void GLArea::paintTP4(QMatrix4x4 matrix)
 
     // Trouvons l'équation de la tangeante au point A : y = ax + b
     // a
-    float xA = (r_roue + h_dent/4) * cos((4 * alphaBig + 17 * alphaBig/32) * 3.14/180);
-    float yA = (r_roue + h_dent/4) * sin((4 * alphaBig + 17 * alphaBig/32) * 3.14/180);
+    float xA = (r_roue + 3 * h_dent/16) * cos((4 * alphaBig + 17 * alphaBig/32) * 3.14/180);
+    float yA = (r_roue + 3 * h_dent/16) * sin((4 * alphaBig + 17 * alphaBig/32) * 3.14/180);
     a = -xA/yA;
     // b
     b = yA - a * xA;
 
-    // Maillons A à D
-    for(float i = 0.25; i <= 5.05; i+=0.6) {
-        float xi = xA + i;
+    // Maillons A à D (A exclu)
+    for(float i = 0.85; i <= 5.05; i+=0.6) {
+        float xi = xA + i - fmod(m_angle, alphaBig) * pas;
         float yi = a * xi + b;
 
         matrixCopy_2 = matrixCopy_1; // Push
@@ -422,10 +424,10 @@ void GLArea::paintTP4(QMatrix4x4 matrix)
     matrixCopy_1 = matrix; // Push
     matrixCopy_1.translate(2.5, 0, 0); // Translation au centre du petit engrenage
 
-    // Maillons C à D
-    for(int i = -1; i < 2; i++) {
-        float xi = (r_roue/2 + h_dent/4) * cos((m_angle + i * alphaSmall) * 3.14/180);
-        float yi = (r_roue/2 + h_dent/4) * sin((m_angle + i * alphaSmall) * 3.14/180);
+    // Maillons C à D (D exclu)
+    for(int i = -2; i < 2; i++) {
+        float xi = (r_roue/2 + h_dent/4) * cos((2 * fmod(m_angle, alphaBig) + i * alphaSmall) * 3.14/180);
+        float yi = (r_roue/2 + h_dent/4) * sin((2 * fmod(m_angle, alphaBig) + i * alphaSmall) * 3.14/180);
 
         matrixCopy_2 = matrixCopy_1; // Push
         matrixCopy_2.translate(xi, yi, 0);
