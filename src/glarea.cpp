@@ -99,13 +99,13 @@ void GLArea::paintGL()
 
     QMatrix4x4 matrix;
     GLfloat hr = m_radius, wr = hr * m_ratio;            // = glFrustum
-    matrix.frustum(-wr, wr, -hr, hr, m_frustumNear, m_frustumFar);
-    //matrix.ortho(-wr, wr, -hr, hr, 1.0, 5.0);
+    //matrix.frustum(-wr, wr, -hr, hr, m_frustumNear, m_frustumFar);
+    matrix.ortho(-wr, wr, -hr, hr, m_frustumNear, m_frustumFar);
     //matrix.perspective(60.0f, m_ratio, 0.1f, 100.0f);  // = gluPerspective
 
     // Remplace gluLookAt (0, 0, 3.0, 0, 0, 0, 0, 1, 0);
     matrix.translate(3, 0, m_cameraDistance);
-    matrix.rotate(m_cameraAngle, 0, 1, 0);
+    //matrix.rotate(m_cameraAngle, 0, 1, 0);
 
     //paintTP3(matrix);
     paintTP4(matrix);
@@ -328,25 +328,112 @@ void GLArea::paintTP3(QMatrix4x4 matrix)
  */
 void GLArea::paintTP4(QMatrix4x4 matrix)
 {
+    // Initialisation des propriétés des éléments graphique
     float ep_roue = 1;
     float r_roue = 1.5;
-    float h_dent = 0.5;
+    float h_dent = 0.3;
     int nb_dent = 20;
+    float alphaBig = 360/nb_dent;
+    float alphaSmall = alphaBig*2;
+
+    float ep_cyl = 1;
+    float r_cyl = 0.15;
+    int nb_fac = 20;
+
+    // Initialisation des matrices
+    QMatrix4x4 matrixCopy_1;
+    QMatrix4x4 matrixCopy_2;
 
     // Gros engrenage
-    QMatrix4x4 matrixCopy_1 = matrix; // Push
-    matrixCopy_1.rotate(-m_angle, 0, 0, 1); // Rotation axe z
+    matrixCopy_1 = matrix; // Push
     matrixCopy_1.translate(-2.5, 0, 0); // Translation en x
+    matrixCopy_1.rotate(-alphaBig/8, 0, 0, 1); // Pour aligner avec les maillons
+    matrixCopy_1.rotate(m_angle, 0, 0, 1); // Rotation axe z
     m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // On applique la matrice
     paintGear(ep_roue, r_roue, h_dent, nb_dent, 0, 0.8, 0); // On dessine un engrenage vert
     m_program->setUniformValue(m_matrixUniform, matrix); // Pop
 
     // Petit engrenage
     matrixCopy_1 = matrix; // Push
-    matrixCopy_1.rotate(-m_angle, 0, 0, 1); // Rotation axe z
     matrixCopy_1.translate(2.5, 0, 0); // Translation en x
+    matrixCopy_1.rotate(-alphaSmall/8, 0, 0, 1); // Pour aligner avec les maillons
+    matrixCopy_1.rotate(m_angle, 0, 0, 1); // Rotation axe z
     m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // On applique la matrice
-    paintGear(ep_roue/2, r_roue/2, h_dent/2, nb_dent/2, 0, 0.8, 0); // On dessine un engrenage vert, deux fois plus petit que le premier
+    paintGear(ep_roue/2, r_roue/2, h_dent, nb_dent/2, 0, 0.8, 0); // On dessine un engrenage vert, deux fois plus petit que le premier
+    m_program->setUniformValue(m_matrixUniform, matrix); // Pop
+
+    matrixCopy_1 = matrix; // Push
+    matrixCopy_1.translate(-2.5, 0, 0); // Translation au centre du gros engrenage
+
+    // Maillons A à B
+    for(int i = 5; i < 16; i++) {
+        float xi = (r_roue + h_dent/4) * cos((m_angle + i * alphaBig) * 3.14/180);
+        float yi = (r_roue + h_dent/4) * sin((m_angle + i * alphaBig) * 3.14/180);
+
+        matrixCopy_2 = matrixCopy_1; // Push
+        matrixCopy_2.translate(xi, yi, 0);
+        m_program->setUniformValue(m_matrixUniform, matrixCopy_2); // On applique la matrice
+        paintCylinder(ep_cyl, r_cyl, nb_fac, 0, 0, 0.8); // On dessine un cylindre bleu
+        m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // Pop
+    }
+
+    // Trouvons l'équation de la tangeante au point B : y = ax + b
+    // a
+    float xB = (r_roue + h_dent/4) * cos((-4 * alphaBig - 17 * alphaBig/32) * 3.14/180);
+    float yB = (r_roue + h_dent/4) * sin((-4 * alphaBig - 17 * alphaBig/32) * 3.14/180);
+    float a = -xB/yB;
+    // b
+    float b = yB - a * xB;
+
+    // Maillons B à C
+    for(float i = 0.25; i <= 5.05; i+=0.6) {
+        float xi = xB + i;
+        float yi = a * xi + b;
+
+        matrixCopy_2 = matrixCopy_1; // Push
+        matrixCopy_2.translate(xi, yi, 0);
+        m_program->setUniformValue(m_matrixUniform, matrixCopy_2); // On applique la matrice
+        paintCylinder(ep_cyl, r_cyl, nb_fac, 0, 0, 0.8); // On dessine un cylindre bleu
+        m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // Pop
+    }
+
+    // Trouvons l'équation de la tangeante au point A : y = ax + b
+    // a
+    float xA = (r_roue + h_dent/4) * cos((4 * alphaBig + 17 * alphaBig/32) * 3.14/180);
+    float yA = (r_roue + h_dent/4) * sin((4 * alphaBig + 17 * alphaBig/32) * 3.14/180);
+    a = -xA/yA;
+    // b
+    b = yA - a * xA;
+
+    // Maillons A à D
+    for(float i = 0.25; i <= 5.05; i+=0.6) {
+        float xi = xA + i;
+        float yi = a * xi + b;
+
+        matrixCopy_2 = matrixCopy_1; // Push
+        matrixCopy_2.translate(xi, yi, 0);
+        m_program->setUniformValue(m_matrixUniform, matrixCopy_2); // On applique la matrice
+        paintCylinder(ep_cyl, r_cyl, nb_fac, 0, 0, 0.8); // On dessine un cylindre bleu
+        m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // Pop
+    }
+
+    m_program->setUniformValue(m_matrixUniform, matrix); // Pop
+
+    matrixCopy_1 = matrix; // Push
+    matrixCopy_1.translate(2.5, 0, 0); // Translation au centre du petit engrenage
+
+    // Maillons C à D
+    for(int i = -1; i < 2; i++) {
+        float xi = (r_roue/2 + h_dent/4) * cos((m_angle + i * alphaSmall) * 3.14/180);
+        float yi = (r_roue/2 + h_dent/4) * sin((m_angle + i * alphaSmall) * 3.14/180);
+
+        matrixCopy_2 = matrixCopy_1; // Push
+        matrixCopy_2.translate(xi, yi, 0);
+        m_program->setUniformValue(m_matrixUniform, matrixCopy_2); // On applique la matrice
+        paintCylinder(ep_cyl, r_cyl, nb_fac, 0, 0, 0.8); // On dessine un cylindre bleu
+        m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // Pop
+    }
+
     m_program->setUniformValue(m_matrixUniform, matrix); // Pop
 }
 
