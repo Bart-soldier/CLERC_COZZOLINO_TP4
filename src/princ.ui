@@ -6,24 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>361</width>
-    <height>315</height>
+    <width>405</width>
+    <height>292</height>
    </rect>
   </property>
-  <property name="minimumSize">
-   <size>
-    <width>0</width>
-    <height>0</height>
-   </size>
-  </property>
-  <property name="baseSize">
-   <size>
-    <width>0</width>
-    <height>0</height>
-   </size>
-  </property>
   <property name="windowTitle">
-   <string>CLERC Billy, COZZOLINO Christine</string>
+   <string>CLERC/COZZOLINO Projet</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -60,7 +48,7 @@
      </layout>
     </item>
     <item>
-     <layout class="QGridLayout" name="cameraProperties">
+     <layout class="QGridLayout" name="gridLayout">
       <item row="0" column="3">
        <widget class="QLabel" name="cameraDistanceLabel">
         <property name="text">
@@ -68,8 +56,46 @@
         </property>
        </widget>
       </item>
-      <item row="1" column="3">
-       <widget class="QSpinBox" name="cameraDistance">
+      <item row="0" column="2">
+       <widget class="QLabel" name="frustumFarLabel">
+        <property name="text">
+         <string>Far 'fF'</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="QLabel" name="frustumNearLabel">
+        <property name="text">
+         <string>Near 'nN'</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="frustumRadiusLabel">
+        <property name="text">
+         <string>Radius 'rR'</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="4">
+       <widget class="QLabel" name="cameraAngleLabel">
+        <property name="text">
+         <string>Angle 'aA'</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QSpinBox" name="frustumRadius">
+        <property name="minimum">
+         <number>-1000</number>
+        </property>
+        <property name="maximum">
+         <number>1000</number>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
+       <widget class="QSpinBox" name="frustumNear">
         <property name="minimum">
          <number>-1000</number>
         </property>
@@ -88,78 +114,20 @@
         </property>
        </widget>
       </item>
+      <item row="1" column="3">
+       <widget class="QSpinBox" name="cameraDistance">
+        <property name="minimum">
+         <number>-1000</number>
+        </property>
+        <property name="maximum">
+         <number>1000</number>
+        </property>
+       </widget>
+      </item>
       <item row="1" column="4">
        <widget class="QSpinBox" name="cameraAngle">
         <property name="maximum">
          <number>359</number>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QLabel" name="frustumNearLabel">
-        <property name="text">
-         <string>Near 'nN'</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="2">
-       <widget class="QLabel" name="frustumFarLabel">
-        <property name="text">
-         <string>Far 'fF'</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="4">
-       <widget class="QLabel" name="cameraAngleLabel">
-        <property name="text">
-         <string>Angle 'aA'</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QSpinBox" name="frustumNear">
-        <property name="minimum">
-         <number>-1000</number>
-        </property>
-        <property name="maximum">
-         <number>1000</number>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="0">
-       <widget class="QLabel" name="frustumRadiusLabel">
-        <property name="enabled">
-         <bool>true</bool>
-        </property>
-        <property name="text">
-         <string>Radius 'rR'</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QSpinBox" name="frustumRadius">
-        <property name="minimum">
-         <number>-1000</number>
-        </property>
-        <property name="maximum">
-         <number>1000</number>
-        </property>
-        <property name="singleStep">
-         <number>1</number>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0" colspan="2">
-       <widget class="QLabel" name="oneFrame">
-        <property name="text">
-         <string>Animate one frame ' '</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="3" colspan="2">
-       <widget class="QLabel" name="launchAnimation">
-        <property name="text">
-         <string>Launch animation 'iI'</string>
         </property>
        </widget>
       </item>
@@ -173,7 +141,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>361</width>
+     <width>405</width>
      <height>26</height>
     </rect>
    </property>

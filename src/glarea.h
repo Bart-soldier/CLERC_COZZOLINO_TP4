@@ -1,8 +1,8 @@
 /**
   CLERC Billy, COZZOLINO Christine
   Programmation Graphique
-  TP4
-  04/02/2021
+  Projet
+  28/02/2021
 **/
 
 #ifndef GLAREA_H
@@ -13,6 +13,10 @@
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions>
 #include <QOpenGLShaderProgram>
+#include <QMatrix4x4>
+#include "kite.h"
+#include "cylinder.h"
+#include "gear.h"
 
 class GLArea : public QOpenGLWidget,
                protected QOpenGLFunctions
@@ -43,7 +47,6 @@ protected slots:
 
 protected:
     void initializeGL() override;
-    void doProjection();
     void resizeGL(int w, int h) override;
     void paintGL() override;
     void keyPressEvent(QKeyEvent *ev) override;
@@ -52,28 +55,35 @@ protected:
     void mouseReleaseEvent(QMouseEvent *ev) override;
     void mouseMoveEvent(QMouseEvent *ev) override;
 
-    void paintTP3(QMatrix4x4 matrix);
-    void paintTP4(QMatrix4x4 matrix);
-    void paintCylinder(float ep_cyl, float r_cyl, int nb_fac, float col_r, float col_g, float col_b);
-    void paintLink(float x, float y, float ep_link, float r_link, float edge, float rotate, float col_r, float col_g, float col_b);
-    void paintGear(float ep_roue, float r_roue, float h_dent, int nb_dent, float col_r, float col_g, float col_b);
-
 private:
     double m_angle = 0;
     QTimer *m_timer = nullptr;
     double m_anim = 0;
-    double m_radius = 0.5;
+    double m_radius = 3.25;
     double m_ratio = 1;
     double m_frustumNear = 1.0;
-    double m_frustumFar = 5.0;
+    double m_frustumFar = 7.5;
     double m_cameraDistance = -5.0;
-    double m_cameraAngle = 10;
+    double m_cameraAngle = 0;
 
-    // Pour utiliser les shaders
     QOpenGLShaderProgram *m_program;
-    int m_posAttr;
-    int m_colAttr;
-    int m_matrixUniform;
+
+    void makeGLObjects();
+    void tearGLObjects();
+    void setTransforms(QMatrix4x4 &cam_mat, QMatrix4x4 &shape_mat);
+
+    Cylinder *m_cylinder = nullptr;
+    Gear *m_bigGear = nullptr,
+         *m_smallGear = nullptr;
+    float ep_roue,
+          r_roue,
+          h_dent,
+          alphaBig,
+          alphaSmall,
+          ep_cyl,
+          r_cyl;
+    int nb_dent,
+        nb_fac;
 };
 
 #endif // GLAREA_H

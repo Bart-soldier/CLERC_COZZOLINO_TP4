@@ -1,8 +1,8 @@
 /**
   CLERC Billy, COZZOLINO Christine
   Programmation Graphique
-  TP4
-  04/02/2021
+  Projet
+  28/02/2021
 **/
 
 #include "princ.h"

@@ -17,18 +17,24 @@ win32 {
     LIBS += -lGLU32 -lOpengl32 -lm
 }
 
-TARGET = CLERC_COZZOLINO_TP4
+TARGET = CLERC_COZZOLINO_Projet
 TEMPLATE = app
 
 
 SOURCES += main.cpp\
+        cylinder.cpp \
+        gear.cpp \
+        kite.cpp \
         princ.cpp \
         glarea.cpp
 
 HEADERS  += princ.h \
-        glarea.h
+        cylinder.h \
+        gear.h \
+        glarea.h \
+        kite.h
 
 FORMS    += princ.ui
 
 RESOURCES += \
-    CLERC_COZZOLINO_TP4.qrc
+    CLERC_COZZOLINO_Projet.qrc
