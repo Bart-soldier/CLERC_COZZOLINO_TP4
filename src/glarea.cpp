@@ -1,39 +1,41 @@
 /**
   CLERC Billy, COZZOLINO Christine
   Programmation Graphique
-  TP4
-  04/02/2021
+  Projet
+  28/02/2021
 **/
 
 #include "glarea.h"
 #include <QDebug>
 #include <QSurfaceFormat>
 #include <QMatrix4x4>
+#include <QVector3D>
 #include <math.h>
-#include "link.h"
 
-static const QString vertexShaderFile   = ":/basic.vsh";
-static const QString fragmentShaderFile = ":/basic.fsh";
+static const QString vertexShaderFile   = ":/vertex.glsl";
+static const QString fragmentShaderFile = ":/fragment.glsl";
 
 
 GLArea::GLArea(QWidget *parent) :
     QOpenGLWidget(parent)
 {
-    qDebug() << "init GLArea" ;
+    //qDebug() << "init GLArea" ;
 
     QSurfaceFormat sf;
     sf.setDepthBufferSize(24);
-    sf.setSamples(16);  // nb de sample par pixels : suréchantillonnage por l'antialiasing, en décalant à chaque fois le sommet
-                        // cf https://www.khronos.org/opengl/wiki/Multisampling et https://stackoverflow.com/a/14474260
+    sf.setSamples(16);  // suréchantillonnage pour l'antialiasing
     setFormat(sf);
-    qDebug() << "Depth is"<< format().depthBufferSize();
+    //qDebug() << "Depth is"<< format().depthBufferSize();
 
     setEnabled(true);  // événements clavier et souris
     setFocusPolicy(Qt::StrongFocus); // accepte focus
     setFocus();                      // donne le focus
 
+    // Animation timer
     m_timer = new QTimer(this);
     m_timer->setInterval(20);  // msec
+
+    // CONNECT
     connect (m_timer, SIGNAL(timeout()), this, SLOT(onTimeout()));
     connect (this, SIGNAL(radiusChanged(double)), this, SLOT(setRadius(double)));
     connect (this, SIGNAL(frustumNearChanged(double)), this, SLOT(setFrustumNear(double)));
@@ -42,27 +44,36 @@ GLArea::GLArea(QWidget *parent) :
     connect (this, SIGNAL(cameraAngleChanged(double)), this, SLOT(setCameraAngle(double)));
 }
 
+
 GLArea::~GLArea()
 {
-    qDebug() << "destroy GLArea";
+    //qDebug() << "destroy GLArea";
 
     delete m_timer;
 
     // Contrairement aux méthodes virtuelles initializeGL, resizeGL et repaintGL,
     // dans le destructeur le contexte GL n'est pas automatiquement rendu courant.
     makeCurrent();
-
-    // ici destructions de ressources GL
-
+    tearGLObjects();
     doneCurrent();
 }
 
 
 void GLArea::initializeGL()
 {
-    qDebug() << __FUNCTION__ ;
+    //qDebug() << __FUNCTION__ ;
+
+    // Initialise le wrapper des fonctions OpenGL pour des questions de portabilité.
+    // Les fontions glBidule pourront être directement appelées dans cette classe
+    // car elle hérite de QOpenGLFunctions. Par contre pour les autres classes qui
+    // font du OpenGL, il faudra appeler les fonctions glBidule en faisant :
+    //     glFuncs->glBidule(...);
+    // en leur transmettant glFuncs, récupéré par (cf paintGL) :
+    //     QOpenGLFunctions *glFuncs = context()->functions();
     initializeOpenGLFunctions();
+
     glEnable(GL_DEPTH_TEST);
+    makeGLObjects();
 
     // shaders
     m_program = new QOpenGLShaderProgram(this);
@@ -72,71 +83,196 @@ void GLArea::initializeGL()
         qWarning("Failed to compile and link shader program:");
         qWarning() << m_program->log();
     }
-
-    // récupère identifiants de "variables" dans les shaders
-    m_posAttr = m_program->attributeLocation("posAttr");
-    m_colAttr = m_program->attributeLocation("colAttr");
-    m_matrixUniform = m_program->uniformLocation("matrix");
 }
+
+
+void GLArea::makeGLObjects()
+{
+    // Initialisation des propriétés des éléments graphique
+    ep_roue = 0.5;
+    r_roue = 1.5;
+    h_dent = 0.3;
+    nb_dent = 20;
+    alphaBig = 360/nb_dent;
+    alphaSmall = alphaBig*2;
+
+    ep_cyl = ep_roue;
+    r_cyl = 0.15;
+    nb_fac = 20;
+
+    m_cylinder = new Cylinder(ep_cyl, r_cyl, nb_fac, 0, 0, 1);
+    m_bigGear = new Gear(ep_roue, r_roue, h_dent, nb_dent, 0, 1, 0);
+    m_smallGear = new Gear(ep_roue, r_roue/2, h_dent, nb_dent/2, 0, 1, 0);
+}
+
+
+void GLArea::tearGLObjects()
+{
+    delete m_cylinder;
+    delete m_bigGear;
+    delete m_smallGear;
+}
+
 
 void GLArea::resizeGL(int w, int h)
 {
-    qDebug() << __FUNCTION__ << w << h;
+    //qDebug() << __FUNCTION__ << w << h;
 
     // C'est fait par défaut
     glViewport(0, 0, w, h);
 
     m_ratio = (double) w / h;
-    // doProjection();
 }
+
 
 void GLArea::paintGL()
 {
-    qDebug() << __FUNCTION__ ;
+    //qDebug() << __FUNCTION__ ;
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    QOpenGLFunctions *glFuncs = context()->functions();  // cf initializeGL
 
     m_program->bind(); // active le shader program
 
-    QMatrix4x4 matrix;
-    GLfloat hr = m_radius, wr = hr * m_ratio;            // = glFrustum
-    matrix.frustum(-wr, wr, -hr, hr, m_frustumNear, m_frustumFar);
-    //matrix.ortho(-wr, wr, -hr, hr, 1.0, 5.0);
-    //matrix.perspective(60.0f, m_ratio, 0.1f, 100.0f);  // = gluPerspective
+    // Projection
+    QMatrix4x4 proj_mat;
+    GLfloat hr = m_radius, wr = hr * m_ratio;
+    //proj_mat.frustum(-wr, wr, -hr, hr, m_frustumNear, m_frustumFar); // = glFrustum
+    proj_mat.ortho(-wr, wr, -hr, hr, m_frustumNear, m_frustumFar);
+    //proj_mat.perspective(60.0f, m_ratio, 0.1f, 100.0f);  // = gluPerspective
+    m_program->setUniformValue("projMatrix", proj_mat);
 
-    // Remplace gluLookAt (0, 0, 3.0, 0, 0, 0, 0, 1, 0);
-    matrix.translate(1, 0, m_cameraDistance);
-    matrix.rotate(m_cameraAngle, 0, 1, 0);
+    // Caméra
+    QMatrix4x4 cam_mat;
+    //cam_mat.translate(0, 0, -3.0);
+    cam_mat.translate(3, 0, m_cameraDistance);
 
-    //paintTP3(matrix);
+    // Orientation de la scène
+    QMatrix4x4 world_mat;
+    world_mat.rotate(m_cameraAngle, 0, 1, 0);
 
+    // Initialisation des matrices
+    QMatrix4x4 matrixCopy_1;
+    QMatrix4x4 matrixCopy_2;
 
+    // Dessin du gros engrenage à gauche
+    matrixCopy_1 = world_mat;
+    matrixCopy_1.translate(-2.5, 0, 0); // Translation en x
+    matrixCopy_1.rotate(-alphaBig/8, 0, 0, 1); // Pour aligner avec les maillons
+    matrixCopy_1.rotate(fmod(m_angle, alphaBig), 0, 0, 1); // Rotation axe z
+    setTransforms(cam_mat, matrixCopy_1); // On applique la matrice
+    m_bigGear->draw(m_program, glFuncs); // On dessine
 
+    // Dessin du petit engrenage à droite
+    matrixCopy_1 = world_mat;
+    matrixCopy_1.translate(2.50, 0, 0); // Translation en x
+    matrixCopy_1.rotate(-alphaSmall/8, 0, 0, 1); // Pour aligner avec les maillons
+    matrixCopy_1.rotate(2 * fmod(m_angle, alphaSmall), 0, 0, 1); // Rotation axe z
+    setTransforms(cam_mat, matrixCopy_1); // On applique la matrice
+    m_smallGear->draw(m_program, glFuncs); // On dessine
 
+    // Dessin des maillons
+    matrixCopy_1 = world_mat;
+    matrixCopy_1.translate(-2.5, 0, 0); // Translation au centre du gros engrenage
 
-    //QMatrix4x4 matrixCopy_1 = matrix; // Push
+    // Maillons A à B (B exclu)
+    for(int i = 4; i < 16; i++) {
+        float xi = (r_roue + h_dent/4) * cos((fmod(m_angle, alphaBig) + i * alphaBig) * 3.14/180);
+        float yi = (r_roue + h_dent/4) * sin((fmod(m_angle, alphaBig) + i * alphaBig) * 3.14/180);
 
-    //matrixCopy_1.rotate(-10, 0, 0, 1);
-    m_program->setUniformValue(m_matrixUniform, matrix); // On applique la matrice
+        matrixCopy_2 = matrixCopy_1;
+        matrixCopy_2.translate(xi, yi, 0);
+        setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
+        m_cylinder->draw(m_program, glFuncs); // On dessine
+    }
 
-    this->paintLink(0.3, 1, 0.2, 0.8, 0.8, 0.8);
-    //matrix.translate(0, 0, 1);
+    float pas = 0.60/alphaBig; // Pour l'animation des maillons sur les tangentes
 
-    //this->paintLink(0.3, 1, 0.2, 0.8, 0.8, 0.8);
+    // Trouvons l'équation de la tangeante au point B : y = ax + b
+    // a
+    float xB = (r_roue + 3 * h_dent/16) * cos((-4 * alphaBig - 17 * alphaBig/32) * 3.14/180);
+    float yB = (r_roue + 3 * h_dent/16) * sin((-4 * alphaBig - 17 * alphaBig/32) * 3.14/180);
+    float a = -xB/yB;
+    // b
+    float b = yB - a * xB;
 
-    m_program->setUniformValue(m_matrixUniform, matrix); // Pop
+    // Maillons B à C (C exclu)
+    for(float i = 0.25; i <= 4.45; i+=0.60) {
+        float xi = xB + i + fmod(m_angle, alphaBig) * pas;
+        float yi = a * xi + b;
 
+        matrixCopy_2 = matrixCopy_1;
+        matrixCopy_2.translate(xi, yi, 0);
+        setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
+        m_cylinder->draw(m_program, glFuncs); // On dessine
+    }
 
+    // Trouvons l'équation de la tangeante au point A : y = ax + b
+    // a
+    float xA = (r_roue + 3 * h_dent/16) * cos((4 * alphaBig + 17 * alphaBig/32) * 3.14/180);
+    float yA = (r_roue + 3 * h_dent/16) * sin((4 * alphaBig + 17 * alphaBig/32) * 3.14/180);
+    a = -xA/yA;
+    // b
+    b = yA - a * xA;
 
+    // Maillons A à D (A exclu)
+    for(float i = 0.85; i <= 5.05; i+=0.6) {
+        float xi = xA + i - fmod(m_angle, alphaBig) * pas;
+        float yi = a * xi + b;
 
+        matrixCopy_2 = matrixCopy_1;
+        matrixCopy_2.translate(xi, yi, 0);
+        setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
+        m_cylinder->draw(m_program, glFuncs); // On dessine
+    }
 
+    matrixCopy_1 = world_mat; // Push
+    matrixCopy_1.translate(2.50, 0, 0); // Translation au centre du gros engrenage
+
+    // Maillons C à D (D exclu)
+    for(int i = -2; i < 2; i++) {
+        float xi = (r_roue/2 + h_dent/4) * cos((2 * fmod(m_angle, alphaBig) + i * alphaSmall) * 3.14/180);
+        float yi = (r_roue/2 + h_dent/4) * sin((2 * fmod(m_angle, alphaBig) + i * alphaSmall) * 3.14/180);
+
+        matrixCopy_2 = matrixCopy_1;
+        matrixCopy_2.translate(xi, yi, 0);
+        setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
+        m_cylinder->draw(m_program, glFuncs); // On dessine
+    }
+
+    /*
+    // Dessin kite1 à droite, tourné et plus petit
+    shape_mat = world_mat;
+    shape_mat.translate(m_kite1->radius(), -0.2, 0);
+    //shape_mat.rotate(5*m_angle, 1, 0, 0);
+    //double s = 0.5 + fabs(m_anim-0.5);
+    //shape_mat.scale(s, s, s);
+    setTransforms(cam_mat, shape_mat);
+    m_gear->draw(m_program, glFuncs);
+
+    // Dessin kite2 au dessus
+    shape_mat = world_mat;
+    shape_mat.translate(0, m_kite2->radius(), 0);
+    setTransforms(cam_mat, shape_mat);
+    m_kite2->draw(m_program, glFuncs);*/
 
     m_program->release();
 }
 
+
+void GLArea::setTransforms(QMatrix4x4 &cam_mat, QMatrix4x4 &shape_mat)
+{
+    QMatrix4x4 mv_mat = cam_mat*shape_mat;
+    m_program->setUniformValue("mvMatrix", mv_mat);
+
+    QMatrix3x3 nor_mat = shape_mat.normalMatrix();
+    m_program->setUniformValue("norMatrix", nor_mat);
+}
+
+
 void GLArea::keyPressEvent(QKeyEvent *ev)
 {
-    qDebug() << __FUNCTION__ << ev->text();
+    //qDebug() << __FUNCTION__ << ev->text();
 
     switch(ev->key()) {
         case Qt::Key_Space :
@@ -146,7 +282,7 @@ void GLArea::keyPressEvent(QKeyEvent *ev)
             break;
         case Qt::Key_I :
             if (m_timer->isActive())
-                m_timer->stop();
+                 m_timer->stop();
             else m_timer->start();
             break;
         case Qt::Key_Z :
@@ -177,40 +313,47 @@ void GLArea::keyPressEvent(QKeyEvent *ev)
     }
 }
 
+
 void GLArea::keyReleaseEvent(QKeyEvent *ev)
 {
-    qDebug() << __FUNCTION__ << ev->text();
+    (void) ev;
+    //qDebug() << __FUNCTION__ << ev->text();
 }
+
 
 void GLArea::mousePressEvent(QMouseEvent *ev)
 {
-    qDebug() << __FUNCTION__ << ev->x() << ev->y() << ev->button();
+    //qDebug() << __FUNCTION__ << ev->x() << ev->y() << ev->button();
 }
+
 
 void GLArea::mouseReleaseEvent(QMouseEvent *ev)
 {
-    qDebug() << __FUNCTION__ << ev->x() << ev->y() << ev->button();
+    //qDebug() << __FUNCTION__ << ev->x() << ev->y() << ev->button();
 }
+
 
 void GLArea::mouseMoveEvent(QMouseEvent *ev)
 {
-    qDebug() << __FUNCTION__ << ev->x() << ev->y();
+    //qDebug() << __FUNCTION__ << ev->x() << ev->y();
 }
+
 
 void GLArea::onTimeout()
 {
-    qDebug() << __FUNCTION__ ;
+    //qDebug() << __FUNCTION__ ;
     m_angle += 1;
     if (m_angle >= 360) m_angle -= 360;
     update();
 }
 
+
 void GLArea::setRadius(double radius)
 {
-    qDebug() << __FUNCTION__ << radius << sender();
+    //qDebug() << __FUNCTION__ << radius << sender();
     if (radius != m_radius && radius > 0.01 && radius <= 10) {
         m_radius = radius;
-        qDebug() << "  emit radiusChanged()";
+        //qDebug() << "  emit radiusChanged()";
         emit radiusChanged(radius);
         update();
     }
@@ -218,10 +361,10 @@ void GLArea::setRadius(double radius)
 
 void GLArea::setFrustumNear(double frustumNear)
 {
-    qDebug() << __FUNCTION__ << frustumNear << sender();
+    //qDebug() << __FUNCTION__ << frustumNear << sender();
     if (frustumNear != m_frustumNear && frustumNear > 0.01 && frustumNear <= 10) {
         m_frustumNear = frustumNear;
-        qDebug() << "  emit frustumNearChanged()";
+        //qDebug() << "  emit frustumNearChanged()";
         emit frustumNearChanged(frustumNear);
         update();
     }
@@ -229,10 +372,10 @@ void GLArea::setFrustumNear(double frustumNear)
 
 void GLArea::setFrustumFar(double frustumFar)
 {
-    qDebug() << __FUNCTION__ << frustumFar << sender();
+    //qDebug() << __FUNCTION__ << frustumFar << sender();
     if (frustumFar != m_frustumFar && frustumFar > 0.01 && frustumFar <= 10) {
         m_frustumFar = frustumFar;
-        qDebug() << "  emit frustumFarChanged()";
+        //qDebug() << "  emit frustumFarChanged()";
         emit frustumFarChanged(frustumFar);
         update();
     }
@@ -240,10 +383,10 @@ void GLArea::setFrustumFar(double frustumFar)
 
 void GLArea::setCameraDistance(double cameraDistance)
 {
-    qDebug() << __FUNCTION__ << cameraDistance << sender();
+    //qDebug() << __FUNCTION__ << cameraDistance << sender();
     if (cameraDistance != m_cameraDistance && cameraDistance >= -20 && cameraDistance <= 20) {
         m_cameraDistance = cameraDistance;
-        qDebug() << "  emit cameraDistanceChanged()";
+        //qDebug() << "  emit cameraDistanceChanged()";
         emit cameraDistanceChanged(cameraDistance);
         update();
     }
@@ -251,234 +394,14 @@ void GLArea::setCameraDistance(double cameraDistance)
 
 void GLArea::setCameraAngle(double cameraAngle)
 {
-    qDebug() << __FUNCTION__ << cameraAngle << sender();
+    //qDebug() << __FUNCTION__ << cameraAngle << sender();
     if (cameraAngle != m_cameraAngle) {
         if(cameraAngle == -1) cameraAngle = 359;
         if(cameraAngle == 360) cameraAngle = 0;
         m_cameraAngle = cameraAngle;
-        qDebug() << "  emit cameraAngleChanged()";
+        //qDebug() << "  emit cameraAngleChanged()";
         emit cameraAngleChanged(cameraAngle);
         update();
     }
 }
-
-/**
- * @brief GLArea::paintTP3 Créer le piston et la bielle telle que décrite dans le TP3
- * @param matrix La matrice de transformation initiale
- */
-void GLArea::paintTP3(QMatrix4x4 matrix)
-{
-    float ep_cyl = 1;
-    float r_cyl = 1.5;
-    int nb_fac = 20;
-
-    // O
-    QMatrix4x4 matrixCopy_1 = matrix; // Push
-    matrixCopy_1.rotate(-m_angle, 0, 0, 1);
-    m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // On applique la matrice
-    paintCylinder(ep_cyl, r_cyl, nb_fac, 0, 0, 1);
-
-    matrixCopy_1.translate(0, 0, -ep_cyl/2);
-    paintCylinder(ep_cyl*2.1, r_cyl/10, nb_fac, 0, 0, 0.5);
-    m_program->setUniformValue(m_matrixUniform, matrix); // Pop
-
-    // H
-    float gh = 2 * r_cyl / 3;
-    float xH = -gh * cos(m_angle * 3.14/180);
-    float yH = gh * sin(m_angle * 3.14/180);
-
-    matrixCopy_1 = matrix; // Push
-    matrixCopy_1.translate(xH, yH, ep_cyl/2);
-    m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // On applique la matrice
-    paintCylinder(ep_cyl*2.5, r_cyl/10, nb_fac, 0, 0.5, 0);
-
-    matrixCopy_1.translate(0, 0, ep_cyl/2);
-    paintCylinder(ep_cyl, r_cyl/4, nb_fac, 0, 1, 0);
-    m_program->setUniformValue(m_matrixUniform, matrix); // Pop
-
-    // J
-    float xJ = xH - 1.5*r_cyl;
-
-    matrixCopy_1 = matrix; // Push
-    matrixCopy_1.translate(xJ, 0, ep_cyl);
-    m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // On applique la matrice
-    paintCylinder(ep_cyl, r_cyl/3, nb_fac, 0, 1, 0);
-
-    matrixCopy_1.translate(0, 0, ep_cyl/2);
-    m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // On applique la matrice
-    paintCylinder(ep_cyl*2.5, r_cyl/10, nb_fac, 0, 0.5, 0);
-
-    matrixCopy_1.translate(0, 0, ep_cyl/2);
-    m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // On applique la matrice
-    paintCylinder(ep_cyl, r_cyl/4, nb_fac, 1, 0, 1);
-    m_program->setUniformValue(m_matrixUniform, matrix); // Pop
-
-    // JH
-
-    matrixCopy_1 = matrix; // Push
-    matrixCopy_1.translate(xH + (xJ - xH)/2, yH/2, ep_cyl);
-    matrixCopy_1.rotate(90, 0, 1, 0);
-    matrixCopy_1.rotate(-atan(yH/abs(xJ - xH)) * 180/3.14, 1, 0, 0);
-    m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // On applique la matrice
-    paintCylinder(xJ - xH, r_cyl/6, nb_fac, 0, 1, 0);
-    m_program->setUniformValue(m_matrixUniform, matrix); // Pop
-
-    // K
-    float xK = -4*r_cyl;
-
-    // Piston
-    matrixCopy_1 = matrix; // Push
-    matrixCopy_1.translate(xJ + ((xK - xJ)/2), 0, 2*ep_cyl);
-    matrixCopy_1.rotate(90, 0, 1, 0);
-    m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // On applique la matrice
-    paintCylinder(xK - xJ, r_cyl/6, nb_fac, 1, 0, 1);
-    m_program->setUniformValue(m_matrixUniform, matrix); // Pop
-
-    // KJ
-    matrixCopy_1 = matrix; // Push
-    matrixCopy_1.translate(xK - r_cyl/2, 0, 2*ep_cyl);
-    matrixCopy_1.rotate(90, 0, 1, 0);
-    m_program->setUniformValue(m_matrixUniform, matrixCopy_1); // On applique la matrice
-    paintCylinder(3*ep_cyl, r_cyl/2, nb_fac, 1, 0.5, 0);
-    m_program->setUniformValue(m_matrixUniform, matrix); // Pop
-}
-
-/**
- * @brief GLArea::paintCylinder Dessine un cylindre
- * @param ep_cyl L'épaisseur du cylindre
- * @param r_cyl Le rayon de la face du cylinder
- * @param nb_fac Le nombre de parties constituant la face
- * @param col_r La valeur R de la couleur en RGB
- * @param col_g La valeur G de la couleur en RGB
- * @param col_b La valeur B de la couleur en RGB
- */
-void GLArea::paintCylinder(float ep_cyl, float r_cyl, int nb_fac, float col_r, float col_g, float col_b)
-{
-    float alpha = 360/nb_fac;
-
-    // On a deux faces par cylindre et nb_fac quadrilatères pour le côté
-    // On a nb_fac sommets par face
-    // On a 4 sommets par quadrilatère pour le côté
-    // On a trois coordonnée par sommet
-    int nb_vertices = 2 * nb_fac * 3 + nb_fac * 4 * 3;
-
-    // On initialise le tableau des sommets
-    GLfloat vertices[nb_vertices];
-
-
-    // On intialise le tableau des couleurs
-    GLfloat colors[nb_vertices];
-
-    int index = 0; // Index des tableaux
-
-    // On fait le tour du cylindre
-    for(int angle = 0; angle < 360; angle += alpha) {
-        vertices[3 * index] = static_cast<GLfloat>(cos(angle * (3.14/180)) * r_cyl);
-        vertices[3 * index + 1] = static_cast<GLfloat>(sin(angle * (3.14/180)) * r_cyl);
-        vertices[3 * index + 2] = -ep_cyl/2;
-        colors[3 * index] = col_r;
-        colors[3 * index + 1] = col_g;
-        colors[3 * index + 2] = col_b;
-        index++;
-    }
-
-    int secondFaceIndex = index; // Index du premier élément pour le dessin de la seconde face
-
-    // On fait le tour du cylindre
-    for(int angle = 0; angle < 360; angle += alpha) {
-        vertices[3 * index] = static_cast<GLfloat>(cos(angle * (3.14/180)) * r_cyl);
-        vertices[3 * index + 1] = static_cast<GLfloat>(sin(angle * (3.14/180)) * r_cyl);
-        vertices[3 * index + 2] = ep_cyl/2;
-        colors[3 * index] = col_r;
-        colors[3 * index + 1] = col_g;
-        colors[3 * index + 2] = col_b;
-        index++;
-    }
-
-    int sideIndex = index; // Index du premier élément pour le dessin du côté
-
-    // On fait le tour du cylindre
-    for(int angle = 0; angle < 360; angle += alpha) {
-        vertices[3 * index] = static_cast<GLfloat>(cos(angle * (3.14/180)) * r_cyl);
-        vertices[3 * index + 1] = static_cast<GLfloat>(sin(angle * (3.14/180)) * r_cyl);
-        vertices[3 * index + 2] = ep_cyl/2;
-        colors[3 * index] = 0.8 * col_r;
-        colors[3 * index + 1] = 0.8 * col_g;
-        colors[3 * index + 2] = 0.8 * col_b;
-        index++;
-
-        vertices[3 * index] = static_cast<GLfloat>(cos(angle * (3.14/180)) * r_cyl);
-        vertices[3 * index + 1] = static_cast<GLfloat>(sin(angle * (3.14/180)) * r_cyl);
-        vertices[3 * index + 2] = -ep_cyl/2;
-        colors[3 * index] = 0.8 * col_r;
-        colors[3 * index + 1] = 0.8 * col_g;
-        colors[3 * index + 2] = 0.8 * col_b;
-        index++;
-
-        vertices[3 * index] = static_cast<GLfloat>(cos((angle + alpha) * (3.14/180)) * r_cyl);
-        vertices[3 * index + 1] = static_cast<GLfloat>(sin((angle + alpha) * (3.14/180)) * r_cyl);
-        vertices[3 * index + 2] = -ep_cyl/2;
-        colors[3 * index] = 0.8 * col_r;
-        colors[3 * index + 1] = 0.8 * col_g;
-        colors[3 * index + 2] = 0.8 * col_b;
-        index++;
-
-        vertices[3 * index] = static_cast<GLfloat>(cos((angle + alpha) * (3.14/180)) * r_cyl);
-        vertices[3 * index + 1] = static_cast<GLfloat>(sin((angle + alpha) * (3.14/180)) * r_cyl);
-        vertices[3 * index + 2] = ep_cyl/2;
-        colors[3 * index] = 0.8 * col_r;
-        colors[3 * index + 1] = 0.8 * col_g;
-        colors[3 * index + 2] = 0.8 * col_b;
-        index++;
-    }
-
-    glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, vertices);
-    glVertexAttribPointer(m_colAttr, 3, GL_FLOAT, GL_FALSE, 0, colors);
-
-    glEnableVertexAttribArray(m_posAttr);  // rend le VAA accessible pour glDrawArrays
-    glEnableVertexAttribArray(m_colAttr);
-
-    glDrawArrays(GL_POLYGON, 0, nb_fac); // Première face
-    glDrawArrays(GL_POLYGON, secondFaceIndex, nb_fac); // Deuxième face
-    // Côté
-    for(int i = 0; i < nb_fac; i++) {
-        glDrawArrays(GL_QUADS, sideIndex + i * 4, 4);
-    }
-
-    glDisableVertexAttribArray(m_posAttr);
-    glDisableVertexAttribArray(m_colAttr);
-}
-
-//float x, float y, float ep_link, float r_link, float edge, float rotate, float col_r, float col_g, float col_b
-
-void GLArea::paintLink(float ep_link, float r_link, float edge, float col_r, float col_g, float col_b){
-
-    Link *link = new Link(ep_link, r_link, edge, col_r, col_g, col_b);
-
-    qDebug() << "  PAINTLINK  ";
-
-    glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, link->getVertices());
-    glVertexAttribPointer(m_colAttr, 3, GL_FLOAT, GL_FALSE, 0, link->getColors());
-
-    glEnableVertexAttribArray(m_posAttr);  // rend le VAA accessible pour glDrawArrays
-    glEnableVertexAttribArray(m_colAttr);
-
-
-    glDrawArrays(GL_POLYGON, 0, 8); // Première face
-    glDrawArrays(GL_POLYGON, 8, 8); // Deuxième face
-
-    // Dessine les faces qui sont à l'origine de l'épaisseur
-    for (int i=0; i<8; i++){
-        glVertexAttribPointer(m_posAttr, 3, GL_FLOAT, GL_FALSE, 0, link->getVertices(i));
-
-        glDrawArrays(GL_POLYGON, 0, 4); // Première face
-    }
-
-    glDisableVertexAttribArray(m_posAttr);
-    glDisableVertexAttribArray(m_colAttr);
-
-}
-
-
-
 

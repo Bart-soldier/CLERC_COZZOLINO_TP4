@@ -1,8 +1,8 @@
 /**
   CLERC Billy, COZZOLINO Christine
   Programmation Graphique
-  TP4
-  04/02/2021
+  Projet
+  28/02/2021
 **/
 
 #include "princ.h"
@@ -24,15 +24,15 @@ Princ::Princ(QWidget *parent) :
     cameraDistanceLabel->setVisible(false);
     cameraAngle->setVisible(false);
     cameraAngleLabel->setVisible(false);
-    oneFrame->setVisible(false);
-    launchAnimation->setVisible(false);
+    //oneFrame->setVisible(false);
+    //launchAnimation->setVisible(false);
 
     // On définit les valeurs intiales
-    frustumRadius->setValue(0.5 * 20);
+    frustumRadius->setValue(3.25 * 20);
     frustumNear->setValue(1.0 * 20);
-    frustumFar->setValue(5.0 * 20);
+    frustumFar->setValue(7.5 * 20);
     cameraDistance->setValue(-5.0 * 20);
-    cameraAngle->setValue(10);
+    cameraAngle->setValue(0);
 
     // On configure les signaux
     connect (glarea, SIGNAL(radiusChanged(double)), this, SLOT(setRadiusValue(double)));
@@ -48,6 +48,7 @@ Princ::Princ(QWidget *parent) :
     connect(cameraAngle, SIGNAL(valueChanged(int)), this, SLOT(onCameraAngleValue(int)));
 }
 
+
 void Princ::on_cameraButton_clicked()
 {
     frustumRadius->setVisible(!frustumRadius->isVisible());
@@ -60,8 +61,8 @@ void Princ::on_cameraButton_clicked()
     cameraDistanceLabel->setVisible(!cameraDistanceLabel->isVisible());
     cameraAngle->setVisible(!cameraAngle->isVisible());
     cameraAngleLabel->setVisible(!cameraAngleLabel->isVisible());
-    oneFrame->setVisible(!oneFrame->isVisible());
-    launchAnimation->setVisible(!launchAnimation->isVisible());
+    //oneFrame->setVisible(!oneFrame->isVisible());
+    //launchAnimation->setVisible(!launchAnimation->isVisible());
 }
 
 void Princ::setRadiusValue(double fRadius)
