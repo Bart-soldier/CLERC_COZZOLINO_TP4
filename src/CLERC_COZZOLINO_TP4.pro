@@ -25,6 +25,7 @@ SOURCES += main.cpp\
         cylinder.cpp \
         gear.cpp \
         kite.cpp \
+        link.cpp \
         princ.cpp \
         glarea.cpp
 
@@ -32,7 +33,8 @@ HEADERS  += princ.h \
         cylinder.h \
         gear.h \
         glarea.h \
-        kite.h
+        kite.h \
+        link.h
 
 FORMS    += princ.ui
 
