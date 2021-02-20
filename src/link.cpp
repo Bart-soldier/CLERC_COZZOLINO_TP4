@@ -19,24 +19,18 @@ Link::Link(float W, float H, float edge, float ep, float m_col_r, float m_col_g,
 
 Link::~Link(){ m_vbo.destroy(); }
 
-void Link::add(QVector3D o, QVector3D a, QVector3D b){
-
-
-}
 
 void Link::buildVertData(QVector<GLfloat> &data){
-    //int nb_vertices = 18;
-    int nb_vertices = 3*8;
+    int nb_vertices = 3*8*2 + 3*4*8;
+    int nb_vertices_face = 8; //nb de sommets d'une face principale
 
-    // points (x, y) sans l'origine
-    //float p[9][2] = { {W/2, H/2}, {0, H - edge/2}, {edge/2, H}, {W - edge/2, H}, {W, H-edge/2}, {W, edge/2}, {W - edge/2, 0}, {edge/2, 0}, {0, edge/2} };
-
-    float p[8][2] = { {0, H - edge/2}, {edge/2, H}, {W - edge/2, H}, {W, H-edge/2}, {W, edge/2}, {W - edge/2, 0}, {edge/2, 0}, {0, edge/2} };
+    float p[8][2] = { {0, H - edge/2}, {edge/2, H}, {W - edge/2, H}, {W, H-edge/2}, {W, edge/2}, {W - edge/2, 0}, {edge/2, 0}, {0, edge/2} }; //coordonnées (x,y) points de base
+    float o[8][2] = { {edge/4, H-edge/4}, {W/2, H}, {W-edge/4, H-edge/4}, {W, H/2}, {W-edge/4, edge/4}, {W/2, 0}, {edge/4, edge/4}, {0, H/2} }; //coordonnées (x,y) origines de chaque face du bord
 
     QVector<QVector3D> vertices; // Sommets
     QVector<QColor> colors = { // Couleurs
         QColor::fromRgbF(m_col_r, m_col_g, m_col_b),                  // Faces
-        //QColor::fromRgbF(0.8 * m_col_r, 0.8 * m_col_g, 0.8 * m_col_b) // Côté
+        QColor::fromRgbF(0.8 * m_col_r, 0.8 * m_col_g, 0.8 * m_col_b) // Côté
     };
     QVector<QVector3D> normals; // Normales
 
@@ -51,23 +45,114 @@ void Link::buildVertData(QVector<GLfloat> &data){
     QVector3D vOB; // Second vecteur
     QVector3D nOAB; // Normale des deux vecteurs
 
-    float currZ = -this->ep;
+    float currZ;
+    int indexOrigine;
 
-    // Origine
-    vertices.append(QVector3D(W/2, H/2, currZ));
-    vertex_index++;
+    // Definition des deux faces principales
+    for (int f=0; f<2; f++){
+        int indexStartFace;
+
+        if (f == 0){
+            currZ = -this->ep;
+            indexOrigine = 0;
+            indexStartFace = 1;
+        }
+        else{
+            currZ = this->ep;
+            indexOrigine = vertex_index + 1;
+            indexStartFace = vertex_index + 2;
+        }
+        // Origine
+        vertices.append(QVector3D(W/2, H/2, currZ));
+        vertex_index++;
+
+        /*  Face principale n°1 */
+        for (int i=0; i<nb_vertices_face ; i++){
+            vertices.append(QVector3D(p[i][0], p[i][1], currZ));
+            vertex_index++;
+
+            if (i>=1){
+                // On calcule la normale
+                vOA = vertices[vertex_index - 1] - vertices[indexOrigine];
+                vOB = vertices[vertex_index] - vertices[indexOrigine];
+                nOAB = QVector3D::normal(vOA, vOB);
+
+                // On ajoute la normal à la liste des normales
+                normals.append(nOAB);
+                normal_index++;
+
+                // O
+                vertices_indices[table_index] = indexOrigine;
+                colors_indices[table_index] = 0;
+                normals_indices[table_index] = normal_index;
+                table_index++;
+                // A
+                vertices_indices[table_index] = vertex_index - 1;
+                colors_indices[table_index] = 0;
+                normals_indices[table_index] = normal_index;
+                table_index++;
+                // B
+                vertices_indices[table_index] = vertex_index;
+                colors_indices[table_index] = 0;
+                normals_indices[table_index] = normal_index;
+                table_index++;
+            }
+        }
+        // Dernier triangle de la face
+        // Normale
+        vOA = vertices[vertex_index] - vertices[indexOrigine];
+        vOB = vertices[1] - vertices[indexOrigine];
+        nOAB = QVector3D::normal(vOA, vOB);
+
+        // On ajoute la normal à la liste des normales
+        normals.append(nOAB);
+        normal_index++;
+
+        // O
+        vertices_indices[table_index] = indexOrigine;
+        colors_indices[table_index] = 0;
+        normals_indices[table_index] = normal_index;
+        table_index++;
+        // A
+        vertices_indices[table_index] = vertex_index;
+        colors_indices[table_index] = 0;
+        normals_indices[table_index] = normal_index;
+        table_index++;
+        // B
+        vertices_indices[table_index] = indexStartFace;
+        colors_indices[table_index] = 0;
+        normals_indices[table_index] = normal_index;
+        table_index++;
+    }
 
 
-    // face 1
-    for (int i=0; i<8 ; i++){
 
+    // Definition des faces du bords
+    for (int i=0; i<8; i++){
+        currZ = -this->ep;
+        indexOrigine = vertex_index + 1;
+
+        // Origine pour chaque face courrante du bord
+        vertices.append(QVector3D(o[i][0], o[i][1], this->ep/2));
+        vertex_index++;
+
+        // sommets de la face
         vertices.append(QVector3D(p[i][0], p[i][1], currZ));
         vertex_index++;
 
-        if (i>=1){
+        vertices.append(QVector3D(p[i][0], p[i][1], -currZ));
+        vertex_index++;
+
+        vertices.append(QVector3D(p[i+1][0], p[i+1][1], -currZ));
+        vertex_index++;
+
+        vertices.append(QVector3D(p[i+1][0], p[i+1][1], currZ));
+        vertex_index++;
+
+        for (int j=3; j>0; j--){
             // On calcule la normale
-            vOA = vertices[vertex_index - 1] - vertices[0];
-            vOB = vertices[vertex_index] - vertices[0];
+            vOA = vertices[vertex_index - j] - vertices[indexOrigine];
+            vOB = vertices[vertex_index - j + 1] - vertices[indexOrigine];
             nOAB = QVector3D::normal(vOA, vOB);
 
             // On ajoute la normal à la liste des normales
@@ -75,53 +160,46 @@ void Link::buildVertData(QVector<GLfloat> &data){
             normal_index++;
 
             // O
-            vertices_indices[table_index] = 0;
-            colors_indices[table_index] = 0;
+            vertices_indices[table_index] = indexOrigine;
+            colors_indices[table_index] = 1;
             normals_indices[table_index] = normal_index;
             table_index++;
             // A
-            vertices_indices[table_index] = vertex_index - 1;
-            colors_indices[table_index] = 0;
+            vertices_indices[table_index] = vertex_index - j;
+            colors_indices[table_index] = 1;
             normals_indices[table_index] = normal_index;
             table_index++;
             // B
-            vertices_indices[table_index] = vertex_index;
-            colors_indices[table_index] = 0;
+            vertices_indices[table_index] = vertex_index - j + 1;
+            colors_indices[table_index] = 1;
             normals_indices[table_index] = normal_index;
             table_index++;
-
         }
+        // On calcule la normale
+        vOA = vertices[vertex_index - 3] - vertices[indexOrigine];
+        vOB = vertices[vertex_index] - vertices[indexOrigine];
+        nOAB = QVector3D::normal(vOA, vOB);
 
+        // On ajoute la normal à la liste des normales
+        normals.append(nOAB);
+        normal_index++;
+
+        // O
+        vertices_indices[table_index] = indexOrigine;
+        colors_indices[table_index] = 1;
+        normals_indices[table_index] = normal_index;
+        table_index++;
+        // A
+        vertices_indices[table_index] = vertex_index - 3;
+        colors_indices[table_index] = 1;
+        normals_indices[table_index] = normal_index;
+        table_index++;
+        // B
+        vertices_indices[table_index] = vertex_index;
+        colors_indices[table_index] = 1;
+        normals_indices[table_index] = normal_index;
+        table_index++;
     }
-
-    // Dernier triangle de la face
-    // Normale
-    vOA = vertices[vertex_index] - vertices[0];
-    vOB = vertices[1] - vertices[0];
-    nOAB = QVector3D::normal(vOA, vOB);
-
-    // On ajoute la normal à la liste des normales
-    normals.append(nOAB);
-    normal_index++;
-
-    // O
-    vertices_indices[table_index] = 0;
-    colors_indices[table_index] = 0;
-    normals_indices[table_index] = normal_index;
-    table_index++;
-    // A
-    vertices_indices[table_index] = vertex_index;
-    colors_indices[table_index] = 0;
-    normals_indices[table_index] = normal_index;
-    table_index++;
-    // B
-    vertices_indices[table_index] = 1;
-    colors_indices[table_index] = 0;
-    normals_indices[table_index] = normal_index;
-    table_index++;
-
-
-
 
 
     // Pour chaque sommet
@@ -141,7 +219,6 @@ void Link::buildVertData(QVector<GLfloat> &data){
     }
 }
 
-
 void Link::draw(QOpenGLShaderProgram *program, QOpenGLFunctions *glFuncs){
 
     m_vbo.bind();
@@ -155,58 +232,20 @@ void Link::draw(QOpenGLShaderProgram *program, QOpenGLFunctions *glFuncs){
 
     // Pour des questions de portabilité, hors de la classe GLArea, tous les appels
     // aux fonctions glBidule doivent être préfixés par glFuncs->.
-    // Face éloignée
-    glFuncs->glDrawArrays(GL_TRIANGLES, 0, 3*8);
+
+    glFuncs->glDrawArrays(GL_TRIANGLES, 0, 3*8); // première face principale
+    glFuncs->glDrawArrays(GL_TRIANGLES, 3*8, 3*8); // deuxième face principale
+
+    int start = 3*8*2;
+
+    for (int i=0; i<8; i++){
+        glFuncs->glDrawArrays(GL_TRIANGLES, start, 3*4); //face du bord n°i
+        start += 3*4;
+    }
 
     program->disableAttributeArray("posAttr");
     program->disableAttributeArray("colAttr");
     program->disableAttributeArray("norAttr");
 
     m_vbo.release();
-
 }
-
-/*
-// Origine de la face
-// O
-vertices.append(QVector3D(W/2, H/2, currZ));
-vertex_index++;
-
-// Premier sommet de la face
-// A
-vertices.append(QVector3D(0, H - edge/2, currZ));
-vertex_index++;
-
-// 2em sommet de la face
-// B
-vertices.append(QVector3D(edge/2, H, currZ));
-vertex_index++;
-
-
-
-// Normale
-vOA = vertices[vertex_index - 1] - vertices[0];
-vOB = vertices[vertex_index] - vertices[0];
-nOAB = QVector3D::normal(vOA, vOB);
-
-// On ajoute la normal à la liste des normales
-normals.append(nOAB);
-normal_index++;
-
-// O
-vertices_indices[table_index] = 0;
-colors_indices[table_index] = 0;
-normals_indices[table_index] = normal_index;
-table_index++;
-// A
-vertices_indices[table_index] = vertex_index - 1;
-colors_indices[table_index] = 0;
-normals_indices[table_index] = normal_index;
-table_index++;
-// B
-vertices_indices[table_index] = vertex_index;
-colors_indices[table_index] = 0;
-normals_indices[table_index] = normal_index;
-table_index++;
-
-*/

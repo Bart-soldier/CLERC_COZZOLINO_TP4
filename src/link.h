@@ -25,7 +25,6 @@ public:
     ~Link();
     void buildVertData(QVector<GLfloat> &data);
     void draw(QOpenGLShaderProgram *program, QOpenGLFunctions *glFuncs);
-    void add(QVector3D o, QVector3D a, QVector3D b);
 
 private:
     QOpenGLBuffer m_vbo;
