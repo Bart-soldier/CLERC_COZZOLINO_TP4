@@ -17,6 +17,7 @@
 #include "kite.h"
 #include "cylinder.h"
 #include "gear.h"
+#include "link.h"
 
 class GLArea : public QOpenGLWidget,
                protected QOpenGLFunctions
@@ -75,6 +76,7 @@ private:
     Cylinder *m_cylinder = nullptr;
     Gear *m_bigGear = nullptr,
          *m_smallGear = nullptr;
+    Link *m_link = nullptr;
     float ep_roue,
           r_roue,
           h_dent,

@@ -86,8 +86,7 @@ void GLArea::initializeGL()
 }
 
 
-void GLArea::makeGLObjects()
-{
+void GLArea::makeGLObjects(){
     // Initialisation des propriétés des éléments graphique
     ep_roue = 0.5;
     r_roue = 1.5;
@@ -103,6 +102,8 @@ void GLArea::makeGLObjects()
     m_cylinder = new Cylinder(ep_cyl, r_cyl, nb_fac, 0, 0, 1);
     m_bigGear = new Gear(ep_roue, r_roue, h_dent, nb_dent, 0, 1, 0);
     m_smallGear = new Gear(ep_roue, r_roue/2, h_dent, nb_dent/2, 0, 1, 0);
+    m_link = new Link(1, 0.3, 0.1, 0.2, 0.8, 0.5, 0.5);
+
 }
 
 
@@ -111,6 +112,7 @@ void GLArea::tearGLObjects()
     delete m_cylinder;
     delete m_bigGear;
     delete m_smallGear;
+    delete m_link;
 }
 
 
@@ -145,7 +147,7 @@ void GLArea::paintGL()
     // Caméra
     QMatrix4x4 cam_mat;
     //cam_mat.translate(0, 0, -3.0);
-    cam_mat.translate(3, 0, m_cameraDistance);
+    cam_mat.translate(1, 0, m_cameraDistance);
 
     // Orientation de la scène
     QMatrix4x4 world_mat;
@@ -155,6 +157,15 @@ void GLArea::paintGL()
     QMatrix4x4 matrixCopy_1;
     QMatrix4x4 matrixCopy_2;
 
+
+    matrixCopy_1 = world_mat;
+    matrixCopy_1.translate(-0.5, 0, 0); // Translation en x
+    setTransforms(cam_mat, matrixCopy_1); // On applique la matrice
+
+    m_link->draw(m_program, glFuncs);
+
+
+    /*
     // Dessin du gros engrenage à gauche
     matrixCopy_1 = world_mat;
     matrixCopy_1.translate(-2.5, 0, 0); // Translation en x
@@ -184,6 +195,7 @@ void GLArea::paintGL()
         matrixCopy_2.translate(xi, yi, 0);
         setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
         m_cylinder->draw(m_program, glFuncs); // On dessine
+
     }
 
     float pas = 0.60/alphaBig; // Pour l'animation des maillons sur les tangentes
@@ -240,7 +252,7 @@ void GLArea::paintGL()
         m_cylinder->draw(m_program, glFuncs); // On dessine
     }
 
-    /*
+
     // Dessin kite1 à droite, tourné et plus petit
     shape_mat = world_mat;
     shape_mat.translate(m_kite1->radius(), -0.2, 0);
@@ -255,6 +267,7 @@ void GLArea::paintGL()
     shape_mat.translate(0, m_kite2->radius(), 0);
     setTransforms(cam_mat, shape_mat);
     m_kite2->draw(m_program, glFuncs);*/
+
 
     m_program->release();
 }
@@ -314,33 +327,28 @@ void GLArea::keyPressEvent(QKeyEvent *ev)
 }
 
 
-void GLArea::keyReleaseEvent(QKeyEvent *ev)
-{
+void GLArea::keyReleaseEvent(QKeyEvent *ev){
     (void) ev;
     //qDebug() << __FUNCTION__ << ev->text();
 }
 
 
-void GLArea::mousePressEvent(QMouseEvent *ev)
-{
+void GLArea::mousePressEvent(QMouseEvent *ev){
     //qDebug() << __FUNCTION__ << ev->x() << ev->y() << ev->button();
 }
 
 
-void GLArea::mouseReleaseEvent(QMouseEvent *ev)
-{
+void GLArea::mouseReleaseEvent(QMouseEvent *ev){
     //qDebug() << __FUNCTION__ << ev->x() << ev->y() << ev->button();
 }
 
 
-void GLArea::mouseMoveEvent(QMouseEvent *ev)
-{
+void GLArea::mouseMoveEvent(QMouseEvent *ev){
     //qDebug() << __FUNCTION__ << ev->x() << ev->y();
 }
 
 
-void GLArea::onTimeout()
-{
+void GLArea::onTimeout(){
     //qDebug() << __FUNCTION__ ;
     m_angle += 1;
     if (m_angle >= 360) m_angle -= 360;
@@ -348,8 +356,7 @@ void GLArea::onTimeout()
 }
 
 
-void GLArea::setRadius(double radius)
-{
+void GLArea::setRadius(double radius){
     //qDebug() << __FUNCTION__ << radius << sender();
     if (radius != m_radius && radius > 0.01 && radius <= 10) {
         m_radius = radius;
@@ -359,8 +366,7 @@ void GLArea::setRadius(double radius)
     }
 }
 
-void GLArea::setFrustumNear(double frustumNear)
-{
+void GLArea::setFrustumNear(double frustumNear){
     //qDebug() << __FUNCTION__ << frustumNear << sender();
     if (frustumNear != m_frustumNear && frustumNear > 0.01 && frustumNear <= 10) {
         m_frustumNear = frustumNear;
@@ -370,8 +376,7 @@ void GLArea::setFrustumNear(double frustumNear)
     }
 }
 
-void GLArea::setFrustumFar(double frustumFar)
-{
+void GLArea::setFrustumFar(double frustumFar){
     //qDebug() << __FUNCTION__ << frustumFar << sender();
     if (frustumFar != m_frustumFar && frustumFar > 0.01 && frustumFar <= 10) {
         m_frustumFar = frustumFar;
@@ -381,8 +386,7 @@ void GLArea::setFrustumFar(double frustumFar)
     }
 }
 
-void GLArea::setCameraDistance(double cameraDistance)
-{
+void GLArea::setCameraDistance(double cameraDistance){
     //qDebug() << __FUNCTION__ << cameraDistance << sender();
     if (cameraDistance != m_cameraDistance && cameraDistance >= -20 && cameraDistance <= 20) {
         m_cameraDistance = cameraDistance;
@@ -392,8 +396,7 @@ void GLArea::setCameraDistance(double cameraDistance)
     }
 }
 
-void GLArea::setCameraAngle(double cameraAngle)
-{
+void GLArea::setCameraAngle(double cameraAngle){
     //qDebug() << __FUNCTION__ << cameraAngle << sender();
     if (cameraAngle != m_cameraAngle) {
         if(cameraAngle == -1) cameraAngle = 359;
@@ -404,4 +407,3 @@ void GLArea::setCameraAngle(double cameraAngle)
         update();
     }
 }
-
