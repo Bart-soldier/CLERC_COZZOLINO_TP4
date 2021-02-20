@@ -102,7 +102,7 @@ void GLArea::makeGLObjects(){
     m_cylinder = new Cylinder(ep_cyl, r_cyl, nb_fac, 0, 0, 1);
     m_bigGear = new Gear(ep_roue, r_roue, h_dent, nb_dent, 0, 1, 0);
     m_smallGear = new Gear(ep_roue, r_roue/2, h_dent, nb_dent/2, 0, 1, 0);
-    m_link = new Link(1, 0.3, 0.1, 1, 0.8, 0.5, 0.5);
+    m_link = new Link(1, 0.3, 0.1, 0.2, 0.8, 0.5, 0.5);
 
 }
 

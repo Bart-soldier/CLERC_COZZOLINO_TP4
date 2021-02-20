@@ -30,7 +30,7 @@ void Link::buildVertData(QVector<GLfloat> &data){
     QVector<QVector3D> vertices; // Sommets
     QVector<QColor> colors = { // Couleurs
         QColor::fromRgbF(m_col_r, m_col_g, m_col_b),                  // Faces
-        QColor::fromRgbF(0.8 * m_col_r, 0.8 * m_col_g, 0.8 * m_col_b) // Côté
+        QColor::fromRgbF(0.5*m_col_r, 0.5*m_col_g, 0.5*m_col_b) // Côté
     };
     QVector<QVector3D> normals; // Normales
 
@@ -128,7 +128,7 @@ void Link::buildVertData(QVector<GLfloat> &data){
 
 
     // Definition des faces du bords
-    for (int i=0; i<8; i++){
+    for (int i=0; i<7; i++){
         currZ = -this->ep;
         indexOrigine = vertex_index + 1;
 
@@ -200,6 +200,48 @@ void Link::buildVertData(QVector<GLfloat> &data){
         normals_indices[table_index] = normal_index;
         table_index++;
     }
+
+
+
+    //dernière face du bord
+
+    indexOrigine = vertex_index + 1;
+
+    // Origine pour chaque face courrante du bord
+    vertices.append(QVector3D(o[7][0], o[7][1], this->ep/2));
+    vertex_index++;
+
+    int indexes_for_last_face[5] = {1, 8, 17, 10, 1};
+
+    for (int i=0; i<4; i++){
+
+        // On calcule la normale
+        vOA = vertices[indexes_for_last_face[i]] - vertices[indexOrigine];
+        vOB = vertices[indexes_for_last_face[i + 1]] - vertices[indexOrigine];
+        nOAB = QVector3D::normal(vOA, vOB);
+
+        // On ajoute la normal à la liste des normales
+        normals.append(nOAB);
+        normal_index++;
+
+        // O
+        vertices_indices[table_index] = indexOrigine;
+        colors_indices[table_index] = 1;
+        normals_indices[table_index] = normal_index;
+        table_index++;
+        // A
+        vertices_indices[table_index] = indexes_for_last_face[i];
+        colors_indices[table_index] = 1;
+        normals_indices[table_index] = normal_index;
+        table_index++;
+        // B
+        vertices_indices[table_index] = indexes_for_last_face[i + 1];
+        colors_indices[table_index] = 1;
+        normals_indices[table_index] = normal_index;
+        table_index++;
+    }
+
+
 
 
     // Pour chaque sommet
