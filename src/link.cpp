@@ -30,7 +30,7 @@ void Link::buildVertData(QVector<GLfloat> &data){
     QVector<QVector3D> vertices; // Sommets
     QVector<QColor> colors = { // Couleurs
         QColor::fromRgbF(m_col_r, m_col_g, m_col_b),                  // Faces
-        QColor::fromRgbF(0.5*m_col_r, 0.5*m_col_g, 0.5*m_col_b) // Côté
+        QColor::fromRgbF(0.8*m_col_r, 0.8*m_col_g, 0.8*m_col_b) // Côté
     };
     QVector<QVector3D> normals; // Normales
 

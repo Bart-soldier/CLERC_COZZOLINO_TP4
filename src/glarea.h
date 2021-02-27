@@ -72,6 +72,7 @@ private:
     void makeGLObjects();
     void tearGLObjects();
     void setTransforms(QMatrix4x4 &cam_mat, QMatrix4x4 &shape_mat);
+    float getAngleBetweenTwoCylinders(float x1, float y1, float x2, float y2);
 
     Cylinder *m_cylinder = nullptr;
     Gear *m_bigGear = nullptr,

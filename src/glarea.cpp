@@ -8,7 +8,9 @@
 #include "glarea.h"
 #include <QDebug>
 #include <QSurfaceFormat>
+#include <QOpenGLTexture>
 #include <QMatrix4x4>
+#include <QtMath>
 #include <QVector3D>
 #include <math.h>
 
@@ -95,14 +97,15 @@ void GLArea::makeGLObjects(){
     alphaBig = 360/nb_dent;
     alphaSmall = alphaBig*2;
 
-    ep_cyl = ep_roue;
+    ep_cyl = 2*ep_roue - ep_roue/3;
     r_cyl = 0.15;
+    //r_cyl = 1;
     nb_fac = 20;
 
     m_cylinder = new Cylinder(ep_cyl, r_cyl, nb_fac, 0, 0, 1);
     m_bigGear = new Gear(ep_roue, r_roue, h_dent, nb_dent, 0, 1, 0);
     m_smallGear = new Gear(ep_roue, r_roue/2, h_dent, nb_dent/2, 0, 1, 0);
-    m_link = new Link(1, 0.3, 0.1, 0.2, 0.8, 0.5, 0.5);
+    m_link = new Link(1.0, 0.4, 0.1, 0.05, 0.8, 0.5, 0.5);
 
 }
 
@@ -127,9 +130,10 @@ void GLArea::resizeGL(int w, int h)
 }
 
 
-void GLArea::paintGL()
-{
+void GLArea::paintGL(){
     //qDebug() << __FUNCTION__ ;
+
+    GLfloat s = 0.2;
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     QOpenGLFunctions *glFuncs = context()->functions();  // cf initializeGL
@@ -162,10 +166,10 @@ void GLArea::paintGL()
     matrixCopy_1.translate(-0.5, 0, 0); // Translation en x
     setTransforms(cam_mat, matrixCopy_1); // On applique la matrice
 
-    m_link->draw(m_program, glFuncs);
+    //m_link->draw(m_program, glFuncs);
 
 
-    /*
+
     // Dessin du gros engrenage à gauche
     matrixCopy_1 = world_mat;
     matrixCopy_1.translate(-2.5, 0, 0); // Translation en x
@@ -182,12 +186,27 @@ void GLArea::paintGL()
     setTransforms(cam_mat, matrixCopy_1); // On applique la matrice
     m_smallGear->draw(m_program, glFuncs); // On dessine
 
+
+
+
+
+
+    // find a fonction between time and angle
+    float angles[12] = {-9.5, 10, 28, 46, 67, 82, 100, 118, 137, 153, 175, 189};
+
+
+    float trX[12] = {-0.3, -0.25, -0.2, -0.1, 0.05, 0.1375, 0.23, 0.285, 0.32, 0.29, 0.25, 0.2};
+
+    float trY[12] = {-0.15, -0.25, -0.325,  -0.38, -0.375,  -0.345, -0.27, -0.15, -0.02, 0.075, 0.2, 0.25};
+
+
     // Dessin des maillons
     matrixCopy_1 = world_mat;
     matrixCopy_1.translate(-2.5, 0, 0); // Translation au centre du gros engrenage
 
     // Maillons A à B (B exclu)
     for(int i = 4; i < 16; i++) {
+
         float xi = (r_roue + h_dent/4) * cos((fmod(m_angle, alphaBig) + i * alphaBig) * 3.14/180);
         float yi = (r_roue + h_dent/4) * sin((fmod(m_angle, alphaBig) + i * alphaBig) * 3.14/180);
 
@@ -195,6 +214,49 @@ void GLArea::paintGL()
         matrixCopy_2.translate(xi, yi, 0);
         setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
         m_cylinder->draw(m_program, glFuncs); // On dessine
+
+
+
+        float x2 = (r_roue + h_dent/4) * cos((fmod(m_angle, alphaBig) + (i+1) * alphaBig) * 3.14/180);
+        float y2 = (r_roue + h_dent/4) * sin((fmod(m_angle, alphaBig) + (i+1) * alphaBig) * 3.14/180);
+
+        matrixCopy_2 = matrixCopy_1;
+        matrixCopy_2.translate(x2, y2, 0);
+        setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
+
+/*
+        if (i > 4 && i < 8) {
+            angleC = -getAngleBetweenTwoCylinders(xi, yi, x2, y2);
+        }
+*/
+        //matrixCopy_2.translate(-securityDistance - securityDistance/4, -securityDistance + securityDistance/4, 2*securityDistance -securityDistance/2); //axe z petit décalage
+
+        //matrixCopy_2.translate(-s*i + s*i/3, -s*i , 2*s -s/2); //axe z petit décalage
+        //matrixCopy_2.rotate(angleC, 0, 0, 1);
+
+
+        //if (m_angle >= 359) matrixCopy_2.rotate(-360, 0, 0, 1);
+
+        if (i <= 7) matrixCopy_2.translate(trX[i-4] + 0.005*m_angle, trY[i-4] - 0.005*m_angle, 2*s -s/2);
+
+        else if (i < 15) matrixCopy_2.translate(trX[i-4] + 0.005*m_angle, trY[i-4] + 0.005*m_angle, 2*s -s/2);
+
+        else matrixCopy_2.translate(trX[i-4] + m_angle*0.005, trY[i-4] - m_angle*0.01, 2*s -s/2);
+
+
+
+        if (i < 15) matrixCopy_2.rotate(angles[i-4] + m_angle, 0, 0, 1);
+        else matrixCopy_2.rotate(189, 0, 0, 1);
+
+        setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
+
+        m_link->draw(m_program, glFuncs);
+
+
+        matrixCopy_2.translate(0, 0, -4*s +s);
+        setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
+
+        m_link->draw(m_program, glFuncs);
 
     }
 
@@ -208,8 +270,11 @@ void GLArea::paintGL()
     // b
     float b = yB - a * xB;
 
+
+
     // Maillons B à C (C exclu)
     for(float i = 0.25; i <= 4.45; i+=0.60) {
+
         float xi = xB + i + fmod(m_angle, alphaBig) * pas;
         float yi = a * xi + b;
 
@@ -217,7 +282,37 @@ void GLArea::paintGL()
         matrixCopy_2.translate(xi, yi, 0);
         setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
         m_cylinder->draw(m_program, glFuncs); // On dessine
+
+
+        // anticipation
+        float x2 = xB + i+0.60 + fmod(m_angle, alphaBig) * pas;
+        float y2 = a * xi + b;
+
+        matrixCopy_2 = matrixCopy_1;
+        matrixCopy_2.translate(x2, y2, 0);
+        setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
+
+        matrixCopy_2.translate(0.2, 0.35, 2*s -s/2); //axe z petit décalage
+
+        if (i >= 4.45 - 0.60) {
+            matrixCopy_2.translate(-m_angle*0.015, +m_angle*0.04, 0);
+            matrixCopy_2.rotate(189 + m_angle*3, 0, 0, 1);
+
+        }
+        else  matrixCopy_2.rotate(189, 0, 0, 1);
+
+        setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
+
+        m_link->draw(m_program, glFuncs);
+
+
+        // de l'autre côté
+        matrixCopy_2.translate(0, 0, -4*s +s);
+        setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
+
+        m_link->draw(m_program, glFuncs);
     }
+
 
     // Trouvons l'équation de la tangeante au point A : y = ax + b
     // a
@@ -227,8 +322,9 @@ void GLArea::paintGL()
     // b
     b = yA - a * xA;
 
-    // Maillons A à D (A exclu)
-    for(float i = 0.85; i <= 5.05; i+=0.6) {
+
+    // Maillons D à A (A exclu)
+    for(float i = 5.05; i >= 0.85; i-=0.6) {
         float xi = xA + i - fmod(m_angle, alphaBig) * pas;
         float yi = a * xi + b;
 
@@ -236,10 +332,54 @@ void GLArea::paintGL()
         matrixCopy_2.translate(xi, yi, 0);
         setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
         m_cylinder->draw(m_program, glFuncs); // On dessine
+
+
+        // anticipation
+        float x2 = xB + i+0.60 + fmod(m_angle, alphaBig) * pas;
+        float y2 = a * xi + b;
+
+        matrixCopy_2 = matrixCopy_1;
+        matrixCopy_2.translate(x2 - m_angle*0.05, y2, 0);
+        setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
+
+
+        matrixCopy_2.translate(-1.4, -0.08, 2*s -s/2); //axe z petit décalage
+        matrixCopy_2.rotate(-9, 0, 0, 1);
+
+        setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
+
+        m_link->draw(m_program, glFuncs);
+
+
+        // de l'autre côté
+        matrixCopy_2.translate(0, 0, -4*s +s);
+        setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
+
+        m_link->draw(m_program, glFuncs);
+
+        matrixCopy_2.translate(x2 + m_angle*0.05, y2, 0);
+        setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
     }
+
 
     matrixCopy_1 = world_mat; // Push
     matrixCopy_1.translate(2.50, 0, 0); // Translation au centre du gros engrenage
+
+    angles[0] = 35;
+    angles[1] = 70;
+    angles[2] = 110;
+    angles[3] = 146;
+
+    trX[0] = -0.1;
+    trX[1] = 0.07;
+    trX[2] = 0.25;
+    trX[3] = 0.3;
+
+    trY[0] = -0.3;
+    trY[1] = -0.3;
+    trY[2] = -0.15;
+    trY[3] = 0.05;
+
 
     // Maillons C à D (D exclu)
     for(int i = -2; i < 2; i++) {
@@ -250,9 +390,25 @@ void GLArea::paintGL()
         matrixCopy_2.translate(xi, yi, 0);
         setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
         m_cylinder->draw(m_program, glFuncs); // On dessine
+
+
+        matrixCopy_2.translate(trX[i+2], trY[i+2], 2*s -s/2); //axe z petit décalage
+        matrixCopy_2.rotate(angles[i+2] + m_angle, 0, 0, 1);
+
+        setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
+
+        m_link->draw(m_program, glFuncs);
+
+
+        // de l'autre côté
+        matrixCopy_2.translate(0, 0, -4*s +s);
+        setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
+
+        m_link->draw(m_program, glFuncs);
     }
 
 
+    /*
     // Dessin kite1 à droite, tourné et plus petit
     shape_mat = world_mat;
     shape_mat.translate(m_kite1->radius(), -0.2, 0);
@@ -266,8 +422,8 @@ void GLArea::paintGL()
     shape_mat = world_mat;
     shape_mat.translate(0, m_kite2->radius(), 0);
     setTransforms(cam_mat, shape_mat);
-    m_kite2->draw(m_program, glFuncs);*/
-
+    m_kite2->draw(m_program, glFuncs);
+    */
 
     m_program->release();
 }
@@ -289,8 +445,8 @@ void GLArea::keyPressEvent(QKeyEvent *ev)
 
     switch(ev->key()) {
         case Qt::Key_Space :
-            m_angle += 1;
-            if (m_angle >= 360) m_angle -= 360;
+            m_angle += 2;
+            if (m_angle >= 18) m_angle -= 18;
             update();
             break;
         case Qt::Key_I :
@@ -407,3 +563,156 @@ void GLArea::setCameraAngle(double cameraAngle){
         update();
     }
 }
+
+float GLArea::getAngleBetweenTwoCylinders(float x1, float y1, float x2, float y2){
+
+
+    qDebug() << "In function ... \n" ;
+
+    if (x1 == NULL || y1 == NULL || x2 == NULL || y2 == NULL) { return 0.0; }
+
+    /*
+    float distHypo = sqrt(pow((x2 - x1), 2) + pow((y2 - y1), 2));
+
+    qDebug() << "x1 : " << x1;
+    qDebug() << "x2 : " << x2;
+    qDebug() << "y1 : " << y1;
+    qDebug() << "y2 : " << y2;
+
+    float x3 = 0;
+    float y3 = 0;
+    float angle = 0;
+
+
+    float sin = 0;
+    float cos = 0;
+
+
+
+    if (y1 > y2){
+
+        x3 = x1;
+        y3 = y2;
+
+        qDebug() << "x3 : " << x3;
+        qDebug() << "y3 : " << y3;
+
+
+        qDebug() << "y1 > y2";
+
+        float distAdj = sqrt(pow((x2 - x3), 2) + pow((y2 - y3), 2));
+
+        float distOpp = sqrt(pow((x1 - x3), 2) + pow((y1 - y3), 2));
+
+        qDebug() << "distOpp : " << distHypo;
+        qDebug() << "distAdj : " << distAdj;
+
+
+
+
+        sin = distOpp/distHypo;
+        cos = distAdj/distHypo;
+
+
+
+
+        angle = cos/sin;
+
+
+
+        //angle = distAdj/distHypo; //sin
+
+        //angle = -qRadiansToDegrees(angle);
+
+        //qDebug() << "In y1 > y2" << angle;
+    }
+    else{
+        x3 = x2;
+        y3 = y1;
+
+        qDebug() << "x3 : " << x3;
+        qDebug() << "y3 : " << y3;
+
+        qDebug() << "y1 <= y2";
+
+
+        float distOpp = sqrt(pow((x2 - x3), 2) + pow((y2 - y3), 2));
+        float distAdj = sqrt(pow((x1 - x3), 2) + pow((y1 - y3), 2));
+
+        qDebug() << "distOpp : " << distHypo;
+        qDebug() << "distAdj : " << distAdj;
+
+
+
+        sin = distOpp/distHypo;
+        cos = distAdj/distHypo;
+
+
+        angle = cos/sin;
+
+
+        //angle = distOpp/distHypo; //sin
+
+
+        //angle = qRadiansToDegrees(angle);
+
+         //qDebug() << "In y1 <= y2" << angle;
+
+    }
+    */
+
+
+
+
+
+    float angle = 0;
+
+    float x3 = x1;
+    float y3 = y2;
+
+
+    float hypo = sqrt( pow((x1 - x2), 2) + pow((y1 - y2), 2) );
+
+    float dist1 = sqrt( pow((x1 - x3), 2) + pow((y1 - y3), 2) );
+    float dist2 = sqrt(pow((x2 - x3), 2) + pow((y2 - y3), 2));
+
+
+    if (dist1 < dist2){
+        // alors dist 2 est côté opposé
+
+        angle = dist1/hypo;
+
+    }
+    else{
+        // dist1 est côté opposé
+
+        angle = dist2/hypo;
+    }
+
+
+    //angle = qRadiansToDegrees(angle);
+
+    angle = -angle * 180/M_PI;
+
+
+
+    qDebug() << angle;
+
+    return angle;
+}
+
+/*
+        if (i < 5){
+            matrixCopy_2.translate(-securityDistance - securityDistance/4, -securityDistance + securityDistance/4, 2*securityDistance -securityDistance/2); //axe z petit décalage
+            matrixCopy_2.rotate(-9.5, 0, 0, 1);
+
+            setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
+
+            m_link->draw(m_program, glFuncs);
+
+            matrixCopy_2.translate(0, 0, -4*securityDistance +securityDistance);
+            setTransforms(cam_mat, matrixCopy_2); // On applique la matrice
+
+            m_link->draw(m_program, glFuncs);
+        }
+        */
